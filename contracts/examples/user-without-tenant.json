@@ -1,0 +1,11 @@
+{
+  "user": {
+    "id": "6431089e-aa44-463f-a11f-e7c1c25cc974",
+    "displayName": "New User",
+    "email": "user@example.invalid",
+    "emailVerified": true,
+    "status": "active"
+  },
+  "tenants": [],
+  "nextTenantsCursor": null
+}

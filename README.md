@@ -1,11 +1,21 @@
 # saas-auth
 
-身份与授权事实：独立登录、SSO、用户、组织、成员邀请、角色定义/分配、会话。现有 packages/auth 是客户端，不是服务。
+身份与授权服务仓库。平台使用 Keycloak 完成认证，Auth 拥有用户映射、租户、成员、邀请和业务角色事实。
 
-状态：执行准备完成，产品代码尚未迁入。
+当前交付为 AUTH-01 契约草案，尚无运行中的身份服务。Keycloak 选型及平台部署/应用接入方向已由用户确认；OpenAPI 与事件需跨仓库评审后冻结。
 
-- [执行清单](docs/EXECUTION.md)
-- [新 session 交接](docs/HANDOFF.md)
-- [四仓库总体计划](docs/saas-platform-plan.md)（初始化快照；后续跨仓库决策以 saas-admin 为协调入口）
+- [平台边界 ADR](docs/adr/0001-platform-boundaries.md)
+- [Keycloak 决策](docs/adr/0002-identity-provider.md)
+- [Auth 契约语义](docs/AUTH-CONTRACT.md)
+- [OpenAPI](contracts/openapi.json)
+- [租户生命周期事件](contracts/events/tenant-lifecycle.schema.json)
 
-源代码基线：[8cdc9ae](https://github.com/valeeraZ/portal-multiapps/tree/8cdc9ae56381dcbde8b8d3c965a75a918897896c)。
+验证：
+
+```sh
+python3 -m venv .venv
+.venv/bin/python -m pip install -r requirements-contracts.txt
+.venv/bin/python scripts/validate_contracts.py
+```
+
+静态校验不代表真实 PostgreSQL、OIDC、MFA、会话撤销或跨租户授权测试通过。下一步为跨仓库契约评审及 AUTH-02 服务实现；不发布公共包、不部署生产。
