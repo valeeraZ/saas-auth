@@ -1,0 +1,46 @@
+name: saas-auth-local
+services:
+  postgres:
+    image: postgres:17-alpine@sha256:742f40ea20b9ff2ff31db5458d127452988a2164df9e17441e191f3b72252193
+    environment:
+      POSTGRES_USER: saas_auth
+      POSTGRES_PASSWORD: ${SAAS_POSTGRES_PASSWORD:?Run scripts/prepare_local.py}
+      POSTGRES_DB: saas_auth
+    ports: ["127.0.0.1:55433:5432"]
+    volumes: ["auth-db:/var/lib/postgresql/data"]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U saas_auth -d saas_auth"]
+      interval: 2s
+      timeout: 2s
+      retries: 30
+  keycloak:
+    image: quay.io/keycloak/keycloak:26.7.3@sha256:ff4257d0d64efbe99ed1ddfaf07765cc3c36dc7518bf8324d41961327f441c54
+    command: ["start-dev", "--import-realm"]
+    environment:
+      KC_HOSTNAME: http://keycloak:8080
+    ports: ["127.0.0.1:58080:8080"]
+    volumes: ["./.local/saas-local-realm.json:/opt/keycloak/data/import/saas-local-realm.json:ro"]
+  migrate:
+    build: .
+    command: ["saas-auth", "migrate"]
+    environment:
+      SAAS_DATABASE_URL: postgresql://saas_auth:${SAAS_POSTGRES_PASSWORD}@postgres:5432/saas_auth
+    depends_on:
+      postgres: {condition: service_healthy}
+  auth:
+    build: .
+    environment:
+      SAAS_DATABASE_URL: postgresql://saas_auth:${SAAS_POSTGRES_PASSWORD}@postgres:5432/saas_auth
+      SAAS_OIDC_ISSUER: http://keycloak:8080/realms/saas-local
+      SAAS_CURSOR_SECRET: ${SAAS_CURSOR_SECRET:?Run scripts/prepare_local.py}
+      SAAS_ALLOW_INSECURE_LOCAL: "true"
+    depends_on:
+      migrate: {condition: service_completed_successfully}
+    ports: ["127.0.0.1:58000:8000"]
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health/ready',timeout=3)"]
+      interval: 5s
+      timeout: 4s
+      retries: 10
+volumes:
+  auth-db:

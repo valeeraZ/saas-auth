@@ -42,4 +42,12 @@ for field, value in [('tenantId', 'not-a-uuid'), ('sequence', 0), ('schemaVersio
 invalid = copy.deepcopy(event)
 invalid['data']['status'] = 'deleted'
 assert list(validator.iter_errors(invalid))
-print(f'Validated OpenAPI: {len(operations)} operations; event schema, 2 examples and 5 negative event cases.')
+authorization_schema = json.loads((root / 'contracts/events/authorization-changed.schema.json').read_text())
+Draft202012Validator.check_schema(authorization_schema)
+authorization_validator = Draft202012Validator(authorization_schema, format_checker=FormatChecker())
+authorization_event = copy.deepcopy(event)
+authorization_event['type'] = 'tenant.authorization_changed'
+authorization_validator.validate(authorization_event)
+assert list(validator.iter_errors(authorization_event))
+assert list(authorization_validator.iter_errors(event))
+print(f'Validated OpenAPI: {len(operations)} operations; 2 event schemas, examples and stream separation.')

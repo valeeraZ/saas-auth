@@ -42,6 +42,8 @@ OpenAPI 中 userAccess 与 serviceAccess 是不同授权上下文的 bearer 文�
 
 事件使用事务 outbox：至少一次投递，以 eventId 去重，以 tenantId + sequence 排序；消费者忽略已应用的旧版本，发现缺口回查权威快照。删除事件保留墓碑，失败进入可重试队列。事件只包含最小租户生命周期元数据，不含用户 token。
 
+AUTH-02 补充：租户快照返回 lifecycleSequence 对应最后的生命周期事件。角色变化使用独立 tenant.authorization_changed 事件和 authorization 流，sequence 等于 authorizationVersion；不能混用两条流的序号。服务许可按客户端、tenantId、appId 显式配置，scope 不能取代数据库许可。
+
 ## AUTH-02 验收前置
 
 必须补齐并运行真实 PostgreSQL 唯一性/事务/outbox 测试；跨租户 role/member 参数伪造；最后 owner 竞争；幂等响应丢失；撤权版本；邀请重复接受；IdP 故障与会话撤销。Schema 验证不是上述集成验收。
