@@ -6,6 +6,6 @@
     "emailVerified": true,
     "status": "active"
   },
-  "organizations": [],
-  "nextOrganizationsCursor": null
+  "tenants": [],
+  "nextTenantsCursor": null
 }

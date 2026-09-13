@@ -7,10 +7,10 @@
 | 自助登录与恢复 | 注册、邮件验证、密码恢复可配置 | 提供登录及身份管理能力 |
 | 企业身份与 MFA | OIDC/SAML 身份代理、OTP/WebAuthn 等 | OIDC/SAML、OTP/Passkeys 等 |
 | Kubernetes | 官方 Operator；数据库需独立提供 | 官方 Helm 部署文档，需明确代理 HTTP/2/h2c 配置 |
-| 平台组织模型 | 不将 realm/上游组织直接等同业务租户 | 不将供应商 organization 直接等同业务租户 |
-| 本项目适配成本（判断） | 需提供 Operator 生命周期与 Helm 编排说明 | 需映射其组织/项目模型，评估现有 API 耦合 |
+| 平台租户模型 | 不将 realm/上游租户直接等同业务租户 | 不将供应商 tenant 直接等同业务租户 |
+| 本项目适配成本（判断） | 需提供 Operator 生命周期与 Helm 编排说明 | 需映射其租户/项目模型，评估现有 API 耦合 |
 
-采用 Keycloak：由平台运维成熟身份服务，Auth 持有自己的稳定 user_id 与业务组织模型，用 issuer + subject 映射上游身份。密码、MFA 凭据、恢复流程交给组件，SDK/业务数据库不存密码。
+采用 Keycloak：由平台运维成熟身份服务，Auth 持有自己的稳定 user_id 与业务租户模型，用 issuer + subject 映射上游身份。密码、MFA 凭据、恢复流程交给组件，SDK/业务数据库不存密码。
 
 平台提供 Helm 不等于所有依赖必须以第三方 chart 管理：若选择 Keycloak，Helm 管理平台资源及 Keycloak CR，Operator/CRD、数据库备份与升级由明确的基础设施流水线管理。不得把官方 Operator 描述为官方 Helm chart。
 

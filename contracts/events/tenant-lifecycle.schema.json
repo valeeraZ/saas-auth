@@ -11,18 +11,18 @@
     },
     "type": {
       "enum": [
-        "organization.created",
-        "organization.suspended",
-        "organization.reactivated",
-        "organization.deletion_requested",
-        "organization.deleted"
+        "tenant.created",
+        "tenant.suspended",
+        "tenant.reactivated",
+        "tenant.deletion_requested",
+        "tenant.deleted"
       ]
     },
     "occurredAt": {
       "type": "string",
       "format": "date-time"
     },
-    "organizationId": {
+    "tenantId": {
       "type": "string",
       "format": "uuid"
     },
@@ -57,19 +57,19 @@
     "schemaVersion",
     "type",
     "occurredAt",
-    "organizationId",
+    "tenantId",
     "sequence",
     "authorizationVersion",
     "data"
   ],
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://schemas.example.invalid/auth/organization-lifecycle/v1",
+  "$id": "https://schemas.example.invalid/auth/tenant-lifecycle/v1",
   "allOf": [
     {
       "if": {
         "properties": {
           "type": {
-            "const": "organization.created"
+            "const": "tenant.created"
           }
         }
       },
@@ -89,7 +89,7 @@
       "if": {
         "properties": {
           "type": {
-            "const": "organization.suspended"
+            "const": "tenant.suspended"
           }
         }
       },
@@ -109,7 +109,7 @@
       "if": {
         "properties": {
           "type": {
-            "const": "organization.reactivated"
+            "const": "tenant.reactivated"
           }
         }
       },
@@ -129,7 +129,7 @@
       "if": {
         "properties": {
           "type": {
-            "const": "organization.deletion_requested"
+            "const": "tenant.deletion_requested"
           }
         }
       },
@@ -149,7 +149,7 @@
       "if": {
         "properties": {
           "type": {
-            "const": "organization.deleted"
+            "const": "tenant.deleted"
           }
         }
       },

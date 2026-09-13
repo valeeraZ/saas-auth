@@ -1,9 +1,9 @@
 {
   "eventId": "2dbba169-2f22-4fb4-8ca4-494283137c16",
   "schemaVersion": 1,
-  "type": "organization.created",
+  "type": "tenant.created",
   "occurredAt": "2026-09-13T12:00:00Z",
-  "organizationId": "368d3eb5-e0f6-4771-b57a-8c31d76a65c1",
+  "tenantId": "368d3eb5-e0f6-4771-b57a-8c31d76a65c1",
   "sequence": 1,
   "authorizationVersion": 1,
   "data": {

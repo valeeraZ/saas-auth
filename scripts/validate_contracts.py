@@ -29,13 +29,13 @@ def expand(schema):
     return schema
 
 user_schema = expand(spec['components']['schemas']['CurrentUser'])
-Draft202012Validator(user_schema, format_checker=FormatChecker()).validate(json.loads((root / 'contracts/examples/user-without-organization.json').read_text()))
-event_schema = json.loads((root / 'contracts/events/organization-lifecycle.schema.json').read_text())
+Draft202012Validator(user_schema, format_checker=FormatChecker()).validate(json.loads((root / 'contracts/examples/user-without-tenant.json').read_text()))
+event_schema = json.loads((root / 'contracts/events/tenant-lifecycle.schema.json').read_text())
 Draft202012Validator.check_schema(event_schema)
 validator = Draft202012Validator(event_schema, format_checker=FormatChecker())
-event = json.loads((root / 'contracts/examples/organization-created.json').read_text())
+event = json.loads((root / 'contracts/examples/tenant-created.json').read_text())
 validator.validate(event)
-for field, value in [('organizationId', 'not-a-uuid'), ('sequence', 0), ('schemaVersion', 2), ('accessToken', 'forbidden-secret')]:
+for field, value in [('tenantId', 'not-a-uuid'), ('sequence', 0), ('schemaVersion', 2), ('accessToken', 'forbidden-secret')]:
     invalid = copy.deepcopy(event)
     invalid[field] = value
     assert list(validator.iter_errors(invalid)), field

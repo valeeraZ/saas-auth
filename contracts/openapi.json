@@ -15,13 +15,13 @@
       "get": {
         "operationId": "getCurrentUser",
         "summary": "getCurrentUser",
-        "description": "Authenticated human user. Return no organizations when membership is empty; use listOrganizations for pagination.",
+        "description": "Authenticated human user. Return no tenants when membership is empty; use listTenants for pagination.",
         "security": [
           {
             "userAccess": []
           }
         ],
-        "x-authorization-policy": "Authenticated human user. Return no organizations when membership is empty; use listOrganizations for pagination.",
+        "x-authorization-policy": "Authenticated human user. Return no tenants when membership is empty; use listTenants for pagination.",
         "x-mutating": false,
         "parameters": [],
         "responses": {
@@ -70,17 +70,17 @@
         }
       }
     },
-    "/v1/organizations": {
+    "/v1/tenants": {
       "get": {
-        "operationId": "listOrganizations",
-        "summary": "listOrganizations",
-        "description": "List only organizations visible through caller membership.",
+        "operationId": "listTenants",
+        "summary": "listTenants",
+        "description": "List only tenants visible through caller membership.",
         "security": [
           {
             "userAccess": []
           }
         ],
-        "x-authorization-policy": "List only organizations visible through caller membership.",
+        "x-authorization-policy": "List only tenants visible through caller membership.",
         "x-mutating": false,
         "parameters": [
           {
@@ -96,7 +96,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/OrganizationPage"
+                  "$ref": "#/components/schemas/TenantPage"
                 }
               }
             },
@@ -136,15 +136,15 @@
         }
       },
       "post": {
-        "operationId": "createOrganization",
-        "summary": "createOrganization",
-        "description": "Verified human email; atomically create organization, owner membership and outbox record. Admin provisioning is separate.",
+        "operationId": "createTenant",
+        "summary": "createTenant",
+        "description": "Verified human email; atomically create tenant, owner membership and outbox record. Admin provisioning is separate.",
         "security": [
           {
             "userAccess": []
           }
         ],
-        "x-authorization-policy": "Verified human email; atomically create organization, owner membership and outbox record. Admin provisioning is separate.",
+        "x-authorization-policy": "Verified human email; atomically create tenant, owner membership and outbox record. Admin provisioning is separate.",
         "x-mutating": true,
         "parameters": [
           {
@@ -157,7 +157,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/Organization"
+                  "$ref": "#/components/schemas/Tenant"
                 }
               }
             },
@@ -200,24 +200,24 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/CreateOrganization"
+                "$ref": "#/components/schemas/CreateTenant"
               }
             }
           }
         }
       }
     },
-    "/v1/organization-context": {
+    "/v1/tenant-context": {
       "post": {
-        "operationId": "selectOrganization",
-        "summary": "selectOrganization",
-        "description": "Validate active membership and organization; return request context only. Never mutate a global active-organization cookie.",
+        "operationId": "selectTenant",
+        "summary": "selectTenant",
+        "description": "Validate active membership and tenant; return request context only. Never mutate a global active-tenant cookie.",
         "security": [
           {
             "userAccess": []
           }
         ],
-        "x-authorization-policy": "Validate active membership and organization; return request context only. Never mutate a global active-organization cookie.",
+        "x-authorization-policy": "Validate active membership and tenant; return request context only. Never mutate a global active-tenant cookie.",
         "x-mutating": false,
         "parameters": [],
         "responses": {
@@ -226,7 +226,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/OrganizationContext"
+                  "$ref": "#/components/schemas/TenantContext"
                 }
               }
             },
@@ -269,18 +269,18 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/SelectOrganization"
+                "$ref": "#/components/schemas/SelectTenant"
               }
             }
           }
         }
       }
     },
-    "/v1/organizations/{organizationId}": {
+    "/v1/tenants/{tenantId}": {
       "get": {
-        "operationId": "getOrganization",
-        "summary": "getOrganization",
-        "description": "Active member; suspended organization visible to owner for recovery. Configured Admin client with organizations:read may read lifecycle snapshots and deleted tombstones for outbox reconciliation; no member data.",
+        "operationId": "getTenant",
+        "summary": "getTenant",
+        "description": "Active member; suspended tenant visible to owner for recovery. Configured Admin client with tenants:read may read lifecycle snapshots and deleted tombstones for outbox reconciliation; no member data.",
         "security": [
           {
             "userAccess": []
@@ -289,11 +289,11 @@
             "serviceAccess": []
           }
         ],
-        "x-authorization-policy": "Active member; suspended organization visible to owner for recovery. Configured Admin client with organizations:read may read lifecycle snapshots and deleted tombstones for outbox reconciliation; no member data.",
+        "x-authorization-policy": "Active member; suspended tenant visible to owner for recovery. Configured Admin client with tenants:read may read lifecycle snapshots and deleted tombstones for outbox reconciliation; no member data.",
         "x-mutating": false,
         "parameters": [
           {
-            "name": "organizationId",
+            "name": "tenantId",
             "in": "path",
             "required": true,
             "schema": {
@@ -308,7 +308,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/Organization"
+                  "$ref": "#/components/schemas/Tenant"
                 }
               }
             },
@@ -348,8 +348,8 @@
         }
       },
       "patch": {
-        "operationId": "changeOrganizationStatus",
-        "summary": "changeOrganizationStatus",
+        "operationId": "changeTenantStatus",
+        "summary": "changeTenantStatus",
         "description": "Owner only. Last-owner invariant. Reactivation allowed only for owner-initiated suspension; platform enforcement requires platform administration.",
         "security": [
           {
@@ -360,7 +360,7 @@
         "x-mutating": true,
         "parameters": [
           {
-            "name": "organizationId",
+            "name": "tenantId",
             "in": "path",
             "required": true,
             "schema": {
@@ -381,7 +381,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/Organization"
+                  "$ref": "#/components/schemas/Tenant"
                 }
               }
             },
@@ -424,28 +424,28 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/UpdateOrganization"
+                "$ref": "#/components/schemas/UpdateTenant"
               }
             }
           }
         }
       }
     },
-    "/v1/organizations/{organizationId}/members": {
+    "/v1/tenants/{tenantId}/members": {
       "get": {
         "operationId": "listMembers",
         "summary": "listMembers",
-        "description": "Active organization owner/admin.",
+        "description": "Active tenant owner/admin.",
         "security": [
           {
             "userAccess": []
           }
         ],
-        "x-authorization-policy": "Active organization owner/admin.",
+        "x-authorization-policy": "Active tenant owner/admin.",
         "x-mutating": false,
         "parameters": [
           {
-            "name": "organizationId",
+            "name": "tenantId",
             "in": "path",
             "required": true,
             "schema": {
@@ -506,7 +506,7 @@
         }
       }
     },
-    "/v1/organizations/{organizationId}/members/{userId}": {
+    "/v1/tenants/{tenantId}/members/{userId}": {
       "patch": {
         "operationId": "updateMember",
         "summary": "updateMember",
@@ -520,7 +520,7 @@
         "x-mutating": true,
         "parameters": [
           {
-            "name": "organizationId",
+            "name": "tenantId",
             "in": "path",
             "required": true,
             "schema": {
@@ -600,21 +600,21 @@
         }
       }
     },
-    "/v1/organizations/{organizationId}/invitations": {
+    "/v1/tenants/{tenantId}/invitations": {
       "get": {
         "operationId": "listInvitations",
         "summary": "listInvitations",
-        "description": "Organization owner/admin; never return invite token.",
+        "description": "Tenant owner/admin; never return invite token.",
         "security": [
           {
             "userAccess": []
           }
         ],
-        "x-authorization-policy": "Organization owner/admin; never return invite token.",
+        "x-authorization-policy": "Tenant owner/admin; never return invite token.",
         "x-mutating": false,
         "parameters": [
           {
-            "name": "organizationId",
+            "name": "tenantId",
             "in": "path",
             "required": true,
             "schema": {
@@ -677,17 +677,17 @@
       "post": {
         "operationId": "inviteMember",
         "summary": "inviteMember",
-        "description": "Organization owner/admin; only invite ordinary members. Mail job in same durable transaction.",
+        "description": "Tenant owner/admin; only invite ordinary members. Mail job in same durable transaction.",
         "security": [
           {
             "userAccess": []
           }
         ],
-        "x-authorization-policy": "Organization owner/admin; only invite ordinary members. Mail job in same durable transaction.",
+        "x-authorization-policy": "Tenant owner/admin; only invite ordinary members. Mail job in same durable transaction.",
         "x-mutating": true,
         "parameters": [
           {
-            "name": "organizationId",
+            "name": "tenantId",
             "in": "path",
             "required": true,
             "schema": {
@@ -755,21 +755,21 @@
         }
       }
     },
-    "/v1/organizations/{organizationId}/invitations/{invitationId}": {
+    "/v1/tenants/{tenantId}/invitations/{invitationId}": {
       "delete": {
         "operationId": "revokeInvitation",
         "summary": "revokeInvitation",
-        "description": "Organization owner/admin; invalidate token before response.",
+        "description": "Tenant owner/admin; invalidate token before response.",
         "security": [
           {
             "userAccess": []
           }
         ],
-        "x-authorization-policy": "Organization owner/admin; invalidate token before response.",
+        "x-authorization-policy": "Tenant owner/admin; invalidate token before response.",
         "x-mutating": true,
         "parameters": [
           {
-            "name": "organizationId",
+            "name": "tenantId",
             "in": "path",
             "required": true,
             "schema": {
@@ -897,11 +897,11 @@
         }
       }
     },
-    "/v1/organizations/{organizationId}/apps/{appId}/roles": {
+    "/v1/tenants/{tenantId}/apps/{appId}/roles": {
       "get": {
         "operationId": "listRoles",
         "summary": "listRoles",
-        "description": "Organization owner/admin or configured Admin client with roles:read and app allowlist.",
+        "description": "Tenant owner/admin or configured Admin client with roles:read and app allowlist.",
         "security": [
           {
             "userAccess": []
@@ -910,11 +910,11 @@
             "serviceAccess": []
           }
         ],
-        "x-authorization-policy": "Organization owner/admin or configured Admin client with roles:read and app allowlist.",
+        "x-authorization-policy": "Tenant owner/admin or configured Admin client with roles:read and app allowlist.",
         "x-mutating": false,
         "parameters": [
           {
-            "name": "organizationId",
+            "name": "tenantId",
             "in": "path",
             "required": true,
             "schema": {
@@ -986,7 +986,7 @@
       "post": {
         "operationId": "createRole",
         "summary": "createRole",
-        "description": "Organization owner/admin or configured Admin client with roles:write and app allowlist. No platform role creation.",
+        "description": "Tenant owner/admin or configured Admin client with roles:write and app allowlist. No platform role creation.",
         "security": [
           {
             "userAccess": []
@@ -995,11 +995,11 @@
             "serviceAccess": []
           }
         ],
-        "x-authorization-policy": "Organization owner/admin or configured Admin client with roles:write and app allowlist. No platform role creation.",
+        "x-authorization-policy": "Tenant owner/admin or configured Admin client with roles:write and app allowlist. No platform role creation.",
         "x-mutating": true,
         "parameters": [
           {
-            "name": "organizationId",
+            "name": "tenantId",
             "in": "path",
             "required": true,
             "schema": {
@@ -1076,11 +1076,11 @@
         }
       }
     },
-    "/v1/organizations/{organizationId}/apps/{appId}/roles/{roleId}": {
+    "/v1/tenants/{tenantId}/apps/{appId}/roles/{roleId}": {
       "delete": {
         "operationId": "deleteRole",
         "summary": "deleteRole",
-        "description": "Organization owner/admin or allowed Admin client roles:write; role must match org and app. Revoke assignments and bump authorizationVersion atomically.",
+        "description": "Tenant owner/admin or allowed Admin client roles:write; role must match org and app. Revoke assignments and bump authorizationVersion atomically.",
         "security": [
           {
             "userAccess": []
@@ -1089,11 +1089,11 @@
             "serviceAccess": []
           }
         ],
-        "x-authorization-policy": "Organization owner/admin or allowed Admin client roles:write; role must match org and app. Revoke assignments and bump authorizationVersion atomically.",
+        "x-authorization-policy": "Tenant owner/admin or allowed Admin client roles:write; role must match org and app. Revoke assignments and bump authorizationVersion atomically.",
         "x-mutating": true,
         "parameters": [
           {
-            "name": "organizationId",
+            "name": "tenantId",
             "in": "path",
             "required": true,
             "schema": {
@@ -1157,21 +1157,21 @@
         }
       }
     },
-    "/v1/organizations/{organizationId}/role-assignments": {
+    "/v1/tenants/{tenantId}/role-assignments": {
       "get": {
         "operationId": "listAssignments",
         "summary": "listAssignments",
-        "description": "Organization owner/admin.",
+        "description": "Tenant owner/admin.",
         "security": [
           {
             "userAccess": []
           }
         ],
-        "x-authorization-policy": "Organization owner/admin.",
+        "x-authorization-policy": "Tenant owner/admin.",
         "x-mutating": false,
         "parameters": [
           {
-            "name": "organizationId",
+            "name": "tenantId",
             "in": "path",
             "required": true,
             "schema": {
@@ -1234,17 +1234,17 @@
       "post": {
         "operationId": "assignRole",
         "summary": "assignRole",
-        "description": "Organization owner/admin; active member and role belong to this organization. Role grant cannot alter organizationRole.",
+        "description": "Tenant owner/admin; active member and role belong to this tenant. Role grant cannot alter tenantRole.",
         "security": [
           {
             "userAccess": []
           }
         ],
-        "x-authorization-policy": "Organization owner/admin; active member and role belong to this organization. Role grant cannot alter organizationRole.",
+        "x-authorization-policy": "Tenant owner/admin; active member and role belong to this tenant. Role grant cannot alter tenantRole.",
         "x-mutating": true,
         "parameters": [
           {
-            "name": "organizationId",
+            "name": "tenantId",
             "in": "path",
             "required": true,
             "schema": {
@@ -1312,21 +1312,21 @@
         }
       }
     },
-    "/v1/organizations/{organizationId}/role-assignments/{assignmentId}": {
+    "/v1/tenants/{tenantId}/role-assignments/{assignmentId}": {
       "delete": {
         "operationId": "revokeRoleAssignment",
         "summary": "revokeRoleAssignment",
-        "description": "Organization owner/admin; assignment belongs to this org; bump authorizationVersion atomically.",
+        "description": "Tenant owner/admin; assignment belongs to this org; bump authorizationVersion atomically.",
         "security": [
           {
             "userAccess": []
           }
         ],
-        "x-authorization-policy": "Organization owner/admin; assignment belongs to this org; bump authorizationVersion atomically.",
+        "x-authorization-policy": "Tenant owner/admin; assignment belongs to this org; bump authorizationVersion atomically.",
         "x-mutating": true,
         "parameters": [
           {
-            "name": "organizationId",
+            "name": "tenantId",
             "in": "path",
             "required": true,
             "schema": {
@@ -1381,7 +1381,7 @@
         }
       }
     },
-    "/v1/organizations/{organizationId}/apps/{appId}/permissions": {
+    "/v1/tenants/{tenantId}/apps/{appId}/permissions": {
       "get": {
         "operationId": "evaluateOwnPermissions",
         "summary": "evaluateOwnPermissions",
@@ -1395,7 +1395,7 @@
         "x-mutating": false,
         "parameters": [
           {
-            "name": "organizationId",
+            "name": "tenantId",
             "in": "path",
             "required": true,
             "schema": {
@@ -1570,7 +1570,7 @@
           "userId"
         ]
       },
-      "Organization": {
+      "Tenant": {
         "type": "object",
         "additionalProperties": false,
         "properties": {
@@ -1626,7 +1626,7 @@
         "type": "object",
         "additionalProperties": false,
         "properties": {
-          "organizationId": {
+          "tenantId": {
             "type": "string",
             "format": "uuid"
           },
@@ -1634,7 +1634,7 @@
             "type": "string",
             "format": "uuid"
           },
-          "organizationRole": {
+          "tenantRole": {
             "enum": [
               "owner",
               "admin",
@@ -1654,9 +1654,9 @@
           }
         },
         "required": [
-          "organizationId",
+          "tenantId",
           "userId",
-          "organizationRole",
+          "tenantRole",
           "status",
           "version"
         ]
@@ -1669,7 +1669,7 @@
             "type": "string",
             "format": "uuid"
           },
-          "organizationId": {
+          "tenantId": {
             "type": "string",
             "format": "uuid"
           },
@@ -1692,7 +1692,7 @@
         },
         "required": [
           "id",
-          "organizationId",
+          "tenantId",
           "appId",
           "key",
           "description",
@@ -1707,7 +1707,7 @@
             "type": "string",
             "format": "uuid"
           },
-          "organizationId": {
+          "tenantId": {
             "type": "string",
             "format": "uuid"
           },
@@ -1726,7 +1726,7 @@
         },
         "required": [
           "id",
-          "organizationId",
+          "tenantId",
           "userId",
           "roleId",
           "version"
@@ -1740,7 +1740,7 @@
             "type": "string",
             "format": "uuid"
           },
-          "organizationId": {
+          "tenantId": {
             "type": "string",
             "format": "uuid"
           },
@@ -1767,7 +1767,7 @@
         },
         "required": [
           "id",
-          "organizationId",
+          "tenantId",
           "email",
           "status",
           "expiresAt",
@@ -1808,14 +1808,14 @@
           "requestId"
         ]
       },
-      "OrganizationPage": {
+      "TenantPage": {
         "type": "object",
         "additionalProperties": false,
         "properties": {
           "items": {
             "type": "array",
             "items": {
-              "$ref": "#/components/schemas/Organization"
+              "$ref": "#/components/schemas/Tenant"
             }
           },
           "nextCursor": {
@@ -1925,14 +1925,14 @@
           "user": {
             "$ref": "#/components/schemas/User"
           },
-          "organizations": {
+          "tenants": {
             "type": "array",
             "maxItems": 100,
             "items": {
-              "$ref": "#/components/schemas/Organization"
+              "$ref": "#/components/schemas/Tenant"
             }
           },
-          "nextOrganizationsCursor": {
+          "nextTenantsCursor": {
             "type": [
               "string",
               "null"
@@ -1941,16 +1941,16 @@
         },
         "required": [
           "user",
-          "organizations",
-          "nextOrganizationsCursor"
+          "tenants",
+          "nextTenantsCursor"
         ]
       },
-      "OrganizationContext": {
+      "TenantContext": {
         "type": "object",
         "additionalProperties": false,
         "properties": {
-          "organization": {
-            "$ref": "#/components/schemas/Organization"
+          "tenant": {
+            "$ref": "#/components/schemas/Tenant"
           },
           "membership": {
             "$ref": "#/components/schemas/Membership"
@@ -1961,7 +1961,7 @@
           }
         },
         "required": [
-          "organization",
+          "tenant",
           "membership",
           "authorizationVersion"
         ]
@@ -1970,7 +1970,7 @@
         "type": "object",
         "additionalProperties": false,
         "properties": {
-          "organizationId": {
+          "tenantId": {
             "type": "string",
             "format": "uuid"
           },
@@ -2004,13 +2004,13 @@
             "enum": [
               "granted",
               "membership_inactive",
-              "organization_inactive",
+              "tenant_inactive",
               "role_missing"
             ]
           }
         },
         "required": [
-          "organizationId",
+          "tenantId",
           "userId",
           "appId",
           "allowed",
@@ -2020,7 +2020,7 @@
           "reason"
         ]
       },
-      "CreateOrganization": {
+      "CreateTenant": {
         "type": "object",
         "additionalProperties": false,
         "properties": {
@@ -2040,7 +2040,7 @@
           "slug"
         ]
       },
-      "UpdateOrganization": {
+      "UpdateTenant": {
         "type": "object",
         "additionalProperties": false,
         "properties": {
@@ -2056,24 +2056,24 @@
           "status"
         ]
       },
-      "SelectOrganization": {
+      "SelectTenant": {
         "type": "object",
         "additionalProperties": false,
         "properties": {
-          "organizationId": {
+          "tenantId": {
             "type": "string",
             "format": "uuid"
           }
         },
         "required": [
-          "organizationId"
+          "tenantId"
         ]
       },
       "UpdateMembership": {
         "type": "object",
         "additionalProperties": false,
         "properties": {
-          "organizationRole": {
+          "tenantRole": {
             "enum": [
               "owner",
               "admin",
@@ -2089,7 +2089,7 @@
           }
         },
         "required": [
-          "organizationRole",
+          "tenantRole",
           "status"
         ]
       },
