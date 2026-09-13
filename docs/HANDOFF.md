@@ -1,13 +1,11 @@
-# 新 session 交接
+# Auth 工作交接
 
-工作目录：`/Users/sylvain/Work/saas-auth`。
-源仓库：`/Users/sylvain/Work/portal-multiapps`；固定基线 `8cdc9ae56381dcbde8b8d3c965a75a918897896c`，分支 `codex/saas-split-baseline`。
-从基线读取源码，不能修改、删除或清理源仓库中的既有实现。采用复制抽取并记录路径映射，源 Git 历史保留在原私有仓库，通过 commit 链接追溯。
+源仓库保持只读，固定来源提交 8cdc9ae56381dcbde8b8d3c965a75a918897896c。SDK 已完成独立抽取、通用 SaaS 命名迁移并合并；新接口不得恢复旧专有命名。
 
-已确认：多租户 SaaS、独立登录、企业 SSO、四个独立仓库。职责以 README 和总体计划为准。四仓库仅初始化文档，没有产品实现，不能当作服务已交付。
+已确认：平台托管，提供 Helm/CI/CD，开放注册；外部应用需审核，每次更新审核，平台控制上线；业务应用同域自定义 suffix，共享浏览器信任边界。用户已选择 Keycloak，接受 Kubernetes Operator，平台继续提供 Helm。
 
-先阅读 EXECUTION.md 和 GitHub Issues；从第一个未完成且依赖已满足的 Issue 开始。创建 codex/ 前缀工作分支，完成真实验证后提交。包名暂保留 @frame/*；不要发布公共包或部署生产。不要重新设计其他仓库的事实所有权。
+当前分支 codex/auth-01-contracts。ADR、Auth 语义契约、OpenAPI、事件 schema 与静态校验脚本已经编写；仍是候选契约，不是运行中的服务。执行脚本见 README，静态验证范围见 docs/CONTRACT-VALIDATION.md。
 
-基线验证：Node 73 passed / 1 PostgreSQL integration skipped（未配置数据库）；Python 4 passed；所有 workspace typecheck passed。生产构建结果见 BASELINE.md。
+首发 SAML 尚无需求承诺；先实现 OIDC。地区、域名、邮件服务和生产镜像精确版本在部署任务中确定，不阻塞当前契约设计。平台管理员 MFA 为建议安全默认，产品上线前验证恢复路径。
 
-当前需明确的后续决策：身份组件、会话/租户路由、私有包发布通道、首批客户与计费规则。SDK-01 的兼容抽取可以先执行，无需等待这些产品决策。
+下一步对候选契约进行跨仓库评审；再执行 AUTH-02，先服务身份与持久角色 API、数据库迁移和 outbox，再完成用户登录/组织流程。真实 OIDC、数据库、授权隔离及 Helm 验收尚未执行。禁止公开发布包或生产部署，除非用户另行授权。

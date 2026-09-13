@@ -36,3 +36,7 @@
 
 - [AUTH-01 固定身份与租户 API 契约](https://github.com/valeeraZ/saas-auth/issues/1)
 - [AUTH-02 实现持久身份与组织授权基础服务](https://github.com/valeeraZ/saas-auth/issues/2)
+
+## 当前候选产物
+
+见 docs/adr、docs/AUTH-CONTRACT.md、contracts/openapi.json 与 contracts/events。静态验证通过，尚待契约评审；不把检查框等同于服务实现验收。Keycloak 选择已确认。
