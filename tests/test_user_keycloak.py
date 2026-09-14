@@ -99,7 +99,26 @@ class Flow:
         # Report only the fixed UI heading, never full HTML, tokens or callback URLs.
         heading = re.search(r"<h1[^>]*>(.*?)</h1>", response.text, re.S)
         title = re.sub(r"<[^>]+>", "", heading[1]).strip() if heading else "no heading"
-        assert response.status_code in {302, 303}, f"Expected callback redirect ({title})"
+        known_errors = [
+            message
+            for message in (
+                "Invalid username or password",
+                "Invalid password",
+                "Invalid username",
+                "You are already logged in",
+                "Your login attempt timed out",
+                "Cookie not found",
+                "Email verified",
+                "You need to verify your email",
+                "Account is disabled",
+                "Account is temporarily disabled",
+                "Please login again",
+            )
+            if message.casefold() in response.text.casefold()
+        ]
+        assert response.status_code in {302, 303}, (
+            f"Expected callback redirect ({title}; {known_errors})"
+        )
         location = response.headers["location"]
         assert location.startswith(CALLBACK)
         query = parse_qs(urlparse(location).query)
@@ -250,23 +269,38 @@ def test_open_registration_email_verification_and_password_reset(oidc, smtp_capt
     )
     assert result.status_code == 200, "Expected email verification step"
     verification = flow.follow(flow.http.get(email_link(smtp_capture, 0)))
-    if verification.status_code == 200 and Page(verification.text).action:
-        flow.submit(verification, {})
-    tokens = flow.tokens(flow.login(username, password))
+    if verification.status_code == 200:
+        confirm = next(
+            (
+                link
+                for link in Page(verification.text).links
+                if "/login-actions/action-token" in link
+            ),
+            None,
+        )
+        if confirm:
+            verification = flow.follow(flow.http.get(urljoin(str(verification.url), confirm)))
+    tokens = (
+        flow.tokens(verification)
+        if verification.status_code in {302, 303}
+        else flow.tokens(flow.login(username + "@example.com", password))
+    )
     response = client.get("/v1/me", headers={"Authorization": "Bearer " + tokens["access_token"]})
     assert response.status_code == 200
     assert response.json()["user"]["emailVerified"] is True
     page = flow.start()
     reset = next(link for link in Page(page.text).links if "/reset-credentials" in link)
-    flow.submit(flow.http.get(urljoin(str(page.url), reset)), {"username": username})
+    flow.submit(
+        flow.http.get(urljoin(str(page.url), reset)), {"username": username + "@example.com"}
+    )
     reset_page = flow.follow(flow.http.get(email_link(smtp_capture, 1)))
     replacement = secrets.token_urlsafe(32)
     changed = flow.submit(
         reset_page, {"password-new": replacement, "password-confirm": replacement}
     )
     assert changed.status_code in {200, 302, 303}
-    assert flow.login(username, password).status_code == 200
-    assert flow.tokens(flow.login(username, replacement))["access_token"]
+    assert flow.login(username + "@example.com", password).status_code == 200
+    assert flow.tokens(flow.login(username + "@example.com", replacement))["access_token"]
 
 
 def test_authorization_code_is_single_use(oidc):
