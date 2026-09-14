@@ -31,6 +31,8 @@ class Page(HTMLParser):
         self.action = None
         self.fields = {}
         self.links = []
+        self.input_names = []
+        self.template = re.findall(r"<!-- template: ([a-zA-Z0-9_.-]+) -->", text)
         self.feed(text)
 
     def handle_starttag(self, tag, attrs):
@@ -39,6 +41,8 @@ class Page(HTMLParser):
             self.action = attrs.get("action")
         if tag == "input" and attrs.get("name") and attrs.get("type") == "hidden":
             self.fields[attrs["name"]] = attrs.get("value", "")
+        if tag == "input" and attrs.get("name"):
+            self.input_names.append(attrs["name"])
         if tag == "a" and attrs.get("href"):
             self.links.append(attrs["href"])
 
@@ -268,7 +272,15 @@ def test_open_registration_email_verification_and_password_reset(oidc, smtp_capt
         },
     )
     assert result.status_code == 200, "Expected email verification step"
+    print("registration step", Page(result.text).template, Page(result.text).input_names)
     verification = flow.follow(flow.http.get(email_link(smtp_capture, 0)))
+    assert username + "@example.com" in str(smtp_capture[0]["To"])
+    print(
+        "verification step",
+        verification.status_code,
+        Page(verification.text).template,
+        Page(verification.text).input_names,
+    )
     if verification.status_code == 200:
         confirm = next(
             (
@@ -280,6 +292,12 @@ def test_open_registration_email_verification_and_password_reset(oidc, smtp_capt
         )
         if confirm:
             verification = flow.follow(flow.http.get(urljoin(str(verification.url), confirm)))
+    print(
+        "confirmation step",
+        verification.status_code,
+        Page(verification.text).template,
+        Page(verification.text).input_names,
+    )
     tokens = (
         flow.tokens(verification)
         if verification.status_code in {302, 303}

@@ -53,4 +53,21 @@ jobs:
             SAAS_TEST_KEYCLOAK_ISSUER=https://127.0.0.1:58443/realms/saas-local \
             uv run pytest -q -m keycloak --tb=short
       - run: uv build
+      - name: Verify installed wheel resources
+        run: |
+          uv venv /tmp/installed-auth
+          uv pip install --python /tmp/installed-auth/bin/python dist/*.whl
+          cd /tmp
+          /tmp/installed-auth/bin/python -c 'from importlib.resources import files; from saas_auth.api import create_app; assert {p.name for p in files("saas_auth").joinpath("migrations").iterdir()} == {"001_foundation.sql", "002_users_and_invitations.sql"}'
       - run: docker build -t saas-auth:ci .
+      - name: Verify Compose startup and migration readiness
+        run: |
+          docker rm -f auth-keycloak
+          docker compose config --quiet
+          docker compose up --build --wait --wait-timeout 180
+          curl --fail http://127.0.0.1:58000/health/ready
+      - name: Clean disposable containers
+        if: always()
+        run: |
+          docker rm -f auth-keycloak || true
+          docker compose down --volumes --remove-orphans
