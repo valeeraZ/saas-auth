@@ -16,6 +16,8 @@ from saas_auth.db import make_pool
 from saas_auth.errors import ApiError, unavailable
 from saas_auth.security import Identity, TokenVerifier
 from saas_auth.service import Service
+from saas_auth.user_api import user_router
+from saas_auth.user_service import UserService
 
 
 class CreateRole(BaseModel):
@@ -28,6 +30,7 @@ def create_app(settings=None):
     settings = settings or Settings.from_env()
     pool = make_pool(settings.database_url)
     service = Service(pool, settings.cursor_secret)
+    users = UserService(pool, settings)
     verifier = TokenVerifier(settings)
 
     @asynccontextmanager
@@ -46,6 +49,22 @@ def create_app(settings=None):
 
     def authenticate(credentials: Annotated[HTTPAuthorizationCredentials | None, Depends(bearer)]):
         return verifier.verify("Bearer " + credentials.credentials if credentials else None)
+
+    user_bearer = HTTPBearer(auto_error=False, scheme_name="userAccess")
+
+    def authenticate_user(
+        credentials: Annotated[HTTPAuthorizationCredentials | None, Depends(user_bearer)],
+    ):
+        return verifier.verify("Bearer " + credentials.credentials if credentials else None)
+
+    def logout_authenticate(
+        credentials: Annotated[HTTPAuthorizationCredentials | None, Depends(user_bearer)],
+    ):
+        # Only a previously established, matching local session may be revoked or replayed.
+        # Local logout must remain available during an IdP outage.
+        return verifier.verify(
+            "Bearer " + credentials.credentials if credentials else None, check_session=False
+        )
 
     @app.middleware("http")
     async def request_context(request, call_next):
@@ -104,7 +123,7 @@ def create_app(settings=None):
             # A database reachable before migrations is not ready to serve traffic.
             try:
                 if not conn.execute(
-                    "SELECT 1 FROM schema_migrations WHERE name='001_foundation.sql'"
+                    "SELECT 1 FROM schema_migrations WHERE name='002_users_and_invitations.sql'"
                 ).fetchone():
                     raise unavailable()
             except psycopg.errors.UndefinedTable:
@@ -113,7 +132,7 @@ def create_app(settings=None):
 
     @app.get("/v1/tenants/{tenantId}", operation_id="getTenant")
     def get_tenant(tenantId: UUID, identity: Identity = Depends(authenticate)):
-        return response(service.snapshot(identity, tenantId))
+        return response((users if identity.human else service).snapshot(identity, tenantId))
 
     @app.get("/v1/tenants/{tenantId}/apps/{appId}/roles", operation_id="listRoles")
     def list_roles(
@@ -123,6 +142,8 @@ def create_app(settings=None):
         cursor: Annotated[str | None, Query(max_length=4096)] = None,
         identity: Identity = Depends(authenticate),
     ):
+        if identity.human:
+            return response(users.list_resources(identity, tenantId, "roles", limit, cursor, appId))
         return response(service.list_roles(identity, tenantId, appId, limit, cursor))
 
     @app.post(
@@ -137,7 +158,7 @@ def create_app(settings=None):
         identity: Identity = Depends(authenticate),
     ):
         return response(
-            service.write_role(
+            (users if identity.human else service).write_role(
                 identity,
                 tenantId,
                 appId,
@@ -164,7 +185,7 @@ def create_app(settings=None):
         identity: Identity = Depends(authenticate),
     ):
         return response(
-            service.write_role(
+            (users if identity.human else service).write_role(
                 identity,
                 tenantId,
                 appId,
@@ -176,4 +197,21 @@ def create_app(settings=None):
             )
         )
 
+    app.include_router(user_router(users, authenticate_user, logout_authenticate, response))
+    original_openapi = app.openapi
+
+    def openapi():
+        schema = original_openapi()
+        for path, methods in schema["paths"].items():
+            for operation in methods.values():
+                if operation.get("operationId") in {
+                    "getTenant",
+                    "listRoles",
+                    "createRole",
+                    "deleteRole",
+                }:
+                    operation["security"] = [{"serviceAccess": []}, {"userAccess": []}]
+        return schema
+
+    app.openapi = openapi
     return app

@@ -184,32 +184,7 @@ class Service:
                         409, "idempotency_conflict", "Key already used for a different request."
                     )
                 return Result(previous["status"], previous["body"], previous["etag"])
-            if role_id:
-                role = conn.execute(
-                    "SELECT * FROM role_definitions WHERE tenant_id=%s AND app_id=%s AND id=%s",
-                    (tenant_id, app_id, role_id),
-                ).fetchone()
-                if not role:
-                    raise ApiError(404, "not_found", "Resource not found.")
-                if etag != f'"{role["version"]}"':
-                    raise ApiError(412, "version_conflict", "Resource version changed.")
-                conn.execute(
-                    "DELETE FROM role_definitions WHERE tenant_id=%s AND app_id=%s AND id=%s",
-                    (tenant_id, app_id, role_id),
-                )
-                result = Result(204)
-                action = "role.deleted"
-            else:
-                role_id = uuid4()
-                role = conn.execute(
-                    "INSERT INTO role_definitions(id,tenant_id,app_id,key,description) "
-                    "VALUES (%s,%s,%s,%s,%s) ON CONFLICT (tenant_id,app_id,key) DO NOTHING RETURNING *",
-                    (role_id, tenant_id, app_id, body["key"], body["description"]),
-                ).fetchone()
-                if not role:
-                    raise ApiError(409, "already_exists", "Resource already exists.")
-                result = Result(201, role_json(role), '"1"')
-                action = "role.created"
+            result, role_id, action = change_role(conn, tenant_id, app_id, role_id, body, etag)
             tenant = conn.execute(
                 "UPDATE tenants SET authorization_version=authorization_version+1, version=version+1 "
                 "WHERE id=%s RETURNING *",
@@ -223,3 +198,33 @@ class Service:
                 (*idem_args, digest, result.status, Jsonb(result.body), result.etag),
             )
             return result
+
+
+def change_role(conn, tenant_id, app_id, role_id, body, etag):
+    if role_id:
+        role = conn.execute(
+            "SELECT * FROM role_definitions WHERE tenant_id=%s AND app_id=%s AND id=%s",
+            (tenant_id, app_id, role_id),
+        ).fetchone()
+        if not role:
+            raise ApiError(404, "not_found", "Resource not found.")
+        if etag != f'"{role["version"]}"':
+            raise ApiError(412, "version_conflict", "Resource version changed.")
+        conn.execute(
+            "DELETE FROM role_definitions WHERE tenant_id=%s AND app_id=%s AND id=%s",
+            (tenant_id, app_id, role_id),
+        )
+        result = Result(204)
+        action = "role.deleted"
+    else:
+        role_id = uuid4()
+        role = conn.execute(
+            "INSERT INTO role_definitions(id,tenant_id,app_id,key,description) "
+            "VALUES (%s,%s,%s,%s,%s) ON CONFLICT (tenant_id,app_id,key) DO NOTHING RETURNING *",
+            (role_id, tenant_id, app_id, body["key"], body["description"]),
+        ).fetchone()
+        if not role:
+            raise ApiError(409, "already_exists", "Resource already exists.")
+        result = Result(201, role_json(role), '"1"')
+        action = "role.created"
+    return result, role_id, action

@@ -5,14 +5,15 @@ Python >=3.11、uv 0.11.7、Docker Compose。依赖在 uv.lock 固定；PostgreS
 ## Docker Compose
 
 ```sh
-python3 scripts/prepare_local.py
+uv sync --frozen
+uv run python scripts/prepare_local.py
 docker compose up --build -d
 curl --fail http://127.0.0.1:58000/health/ready
 ```
 
 prepare_local 生成随机本地数据库、游标和客户端密钥，保存到忽略的 .env、.local/saas-local-realm.json，拒绝覆盖已有文件。.local 是私有目录，单文件只读挂载给 Keycloak。API 58000、Keycloak 58080、PostgreSQL 55433 仅绑定 127.0.0.1。迁移先于 API 执行。
 
-Compose realm 仅用于机器身份联调，禁用交互登录和注册，不代表产品开放注册范围变化。Keycloak 使用临时开发存储；重建后重新导入，业务数据库存于 auth-db volume。issuer 固定为 http://keycloak:8080/realms/saas-local，供 Auth 容器内部获取 JWKS；宿主机请求 token 使用 127.0.0.1:58080。
+Compose 默认仅启用 Auth 机器身份接口。生成的 realm 已允许注册/验证/找回，但交互协议测试必须使用下述独立 HTTPS 环境，以保证 Secure cookie 正常工作。Keycloak 使用临时开发存储；重建后重新导入，业务数据库存于 auth-db volume。issuer 固定为 http://keycloak:8080/realms/saas-local，供 Auth 容器内部获取 JWKS；宿主机请求 token 使用 127.0.0.1:58080。
 
 API 默认无租户许可。用运维 CLI 建立本地测试租户，再赋予 saas-admin 对该租户及应用的范围：
 
@@ -55,13 +56,25 @@ uv run uvicorn saas_auth.api:create_app --factory --port 8000
 ```sh
 uv sync --frozen
 export SAAS_TEST_DATABASE_URL='postgresql://USER:PASSWORD@127.0.0.1:5432/saas_auth_test'
-uv run ruff check src tests scripts/prepare_local.py
+uv run ruff check src tests scripts/prepare_local.py scripts/realm_users.py scripts/local_tls.py
 uv run python scripts/validate_contracts.py
 uv run pytest -q -m 'not keycloak'
 uv build
 docker build -t saas-auth:local .
 ```
 
-真实 Keycloak 测试：使用 prepare_local 生成的 realm，以单文件挂载运行 Keycloak 26.7.3 `start-dev --import-realm`，不要设置 Compose 中的 KC_HOSTNAME；设 SAAS_TEST_KEYCLOAK_ISSUER=http://127.0.0.1:58080/realms/saas-local，SAAS_TEST_KEYCLOAK_SECRET 为生成的客户端密钥，然后运行 `uv run pytest -q -m keycloak`。完整命令见 .github/workflows/validate.yml。验证真实 client_credentials、JWKS 和数据库撤权，不测试用户登录或会话撤销。
+真实 Keycloak 用户测试使用独立 HTTPS 容器，完整启动命令见 `.github/workflows/validate.yml`：生成配置后挂载 realm、tls.crt、tls.key，映射 58443:8443，设置 hostname=https://127.0.0.1:58443，并添加 host.docker.internal:host-gateway。测试启动 58025 端口上的本地 SMTP 捕获器，不向外部邮箱投递。证书有效期 7 天；到期后明确删除旧本地配置再生成，勿覆盖生产凭据。
+
+```sh
+set -a
+. ./.env
+set +a
+SSL_CERT_FILE="$PWD/.local/tls.crt" \
+  SAAS_TEST_KEYCLOAK_SECRET="$SAAS_LOCAL_CLIENT_SECRET" \
+  SAAS_TEST_KEYCLOAK_ISSUER=https://127.0.0.1:58443/realms/saas-local \
+  uv run pytest -q -m keycloak --tb=short
+```
+
+需同时配置上述专用测试数据库。覆盖真实机器令牌、注册/邮件验证/找回、PKCE、token exchange 和上游会话撤销；不是 Portal 浏览器验收。不要把 SSL_CERT_FILE 设置为全局环境变量，以免影响访问公共依赖源。用户 API 与私有任务配置见 USER-TENANCY.md。
 
 CI 执行契约、静态检查、PostgreSQL、真实 Keycloak、wheel/sdist 和 Docker 构建；没有 publish 或 deploy 步骤。

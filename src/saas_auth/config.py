@@ -1,15 +1,19 @@
 import os
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from urllib.parse import urlparse
 
 
 @dataclass(frozen=True)
 class Settings:
-    database_url: str
+    database_url: str = field(repr=False)
     issuer: str
-    cursor_secret: str
+    cursor_secret: str = field(repr=False)
     audience: str = "saas-auth"
     allow_insecure_local: bool = False
+    user_clients: tuple[str, ...] = ()
+    introspection_client: str = ""
+    introspection_secret: str = field(default="", repr=False)
+    task_key: str = field(default="", repr=False)
 
     def __post_init__(self):
         url = urlparse(self.issuer)
@@ -20,6 +24,12 @@ class Settings:
             raise ValueError("Issuer must use HTTPS (explicit local development exception only)")
         if len(self.cursor_secret) < 32:
             raise ValueError("SAAS_CURSOR_SECRET must contain at least 32 characters")
+        if self.user_clients:
+            from cryptography.fernet import Fernet
+
+            if not self.introspection_client or not self.introspection_secret:
+                raise ValueError("User clients require introspection credentials")
+            Fernet(self.task_key.encode())
 
     @classmethod
     def from_env(cls):
@@ -29,4 +39,8 @@ class Settings:
             cursor_secret=os.environ["SAAS_CURSOR_SECRET"],
             audience=os.environ.get("SAAS_OIDC_AUDIENCE", "saas-auth"),
             allow_insecure_local=os.environ.get("SAAS_ALLOW_INSECURE_LOCAL") == "true",
+            user_clients=tuple(filter(None, os.environ.get("SAAS_USER_CLIENTS", "").split(","))),
+            introspection_client=os.environ.get("SAAS_INTROSPECTION_CLIENT", ""),
+            introspection_secret=os.environ.get("SAAS_INTROSPECTION_SECRET", ""),
+            task_key=os.environ.get("SAAS_TASK_KEY", ""),
         )

@@ -4,6 +4,7 @@ import threading
 import time
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from types import SimpleNamespace
+from urllib.parse import parse_qs
 from uuid import uuid4
 
 import jwt
@@ -24,9 +25,33 @@ def signing():
     key = rsa.generate_private_key(public_exponent=65537, key_size=2048)
     jwk = json.loads(jwt.algorithms.RSAAlgorithm.to_jwk(key.public_key()))
     jwk.update(kid="integration-key", use="sig", alg="RS256")
-    state = {"keys": [jwk], "unavailable": False}
+    state = {"keys": [jwk], "unavailable": False, "inactive": set()}
 
     class Handler(BaseHTTPRequestHandler):
+        def do_POST(self):
+            body = parse_qs(self.rfile.read(int(self.headers["Content-Length"])).decode())
+            if state["unavailable"]:
+                self.send_response(503)
+                self.end_headers()
+                return
+            claims = jwt.decode(
+                body["token"][0],
+                key.public_key(),
+                algorithms=["RS256"],
+                options={"verify_aud": False},
+            )
+            self.send_response(200)
+            self.end_headers()
+            self.wfile.write(
+                json.dumps(
+                    {
+                        "active": claims.get("sid") not in state["inactive"],
+                        "sub": claims["sub"],
+                        "sid": claims.get("sid"),
+                    }
+                ).encode()
+            )
+
         def do_GET(self):
             self.send_response(503 if state["unavailable"] else 200)
             self.end_headers()
