@@ -272,15 +272,8 @@ def test_open_registration_email_verification_and_password_reset(oidc, smtp_capt
         },
     )
     assert result.status_code == 200, "Expected email verification step"
-    print("registration step", Page(result.text).template, Page(result.text).input_names)
     verification = flow.follow(flow.http.get(email_link(smtp_capture, 0)))
     assert username + "@example.com" in str(smtp_capture[0]["To"])
-    print(
-        "verification step",
-        verification.status_code,
-        Page(verification.text).template,
-        Page(verification.text).input_names,
-    )
     if verification.status_code == 200:
         confirm = next(
             (
@@ -292,12 +285,22 @@ def test_open_registration_email_verification_and_password_reset(oidc, smtp_capt
         )
         if confirm:
             verification = flow.follow(flow.http.get(urljoin(str(verification.url), confirm)))
-    print(
-        "confirmation step",
-        verification.status_code,
-        Page(verification.text).template,
-        Page(verification.text).input_names,
-    )
+    # The imported realm's email-first registration sets the password only
+    # after verifying the email. Posting it on the initial form is insufficient.
+    if verification.status_code == 200 and "password-new" in Page(verification.text).input_names:
+        verification = flow.submit(
+            verification, {"password-new": password, "password-confirm": password}
+        )
+    if verification.status_code == 200 and "firstName" in Page(verification.text).input_names:
+        verification = flow.submit(
+            verification,
+            {
+                "username": username,
+                "email": username + "@example.com",
+                "firstName": "Test",
+                "lastName": "User",
+            },
+        )
     tokens = (
         flow.tokens(verification)
         if verification.status_code in {302, 303}
