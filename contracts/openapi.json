@@ -3,7 +3,7 @@
   "info": {
     "title": "SaaS Auth API",
     "version": "0.1.0-draft",
-    "description": "Contract proposal, not a running service. Identity provider: Keycloak; business authorization owned by Auth."
+    "description": "Candidate contract. The service foundation implements only machine tenant snapshots and role APIs; user flows remain pending. Identity provider: Keycloak; business authorization owned by Auth."
   },
   "servers": [
     {
@@ -1080,7 +1080,7 @@
       "delete": {
         "operationId": "deleteRole",
         "summary": "deleteRole",
-        "description": "Tenant owner/admin or allowed Admin client roles:write; role must match org and app. Revoke assignments and bump authorizationVersion atomically.",
+        "description": "Tenant owner/admin or allowed Admin client roles:write; role must match tenant and app. Revoke assignments and bump authorizationVersion atomically.",
         "security": [
           {
             "userAccess": []
@@ -1089,7 +1089,7 @@
             "serviceAccess": []
           }
         ],
-        "x-authorization-policy": "Tenant owner/admin or allowed Admin client roles:write; role must match org and app. Revoke assignments and bump authorizationVersion atomically.",
+        "x-authorization-policy": "Tenant owner/admin or allowed Admin client roles:write; role must match tenant and app. Revoke assignments and bump authorizationVersion atomically.",
         "x-mutating": true,
         "parameters": [
           {
@@ -1316,13 +1316,13 @@
       "delete": {
         "operationId": "revokeRoleAssignment",
         "summary": "revokeRoleAssignment",
-        "description": "Tenant owner/admin; assignment belongs to this org; bump authorizationVersion atomically.",
+        "description": "Tenant owner/admin; assignment belongs to this tenant; bump authorizationVersion atomically.",
         "security": [
           {
             "userAccess": []
           }
         ],
-        "x-authorization-policy": "Tenant owner/admin; assignment belongs to this org; bump authorizationVersion atomically.",
+        "x-authorization-policy": "Tenant owner/admin; assignment belongs to this tenant; bump authorizationVersion atomically.",
         "x-mutating": true,
         "parameters": [
           {
@@ -1610,6 +1610,11 @@
               "owner",
               "platform"
             ]
+          },
+          "lifecycleSequence": {
+            "type": "integer",
+            "minimum": 1,
+            "description": "Last tenant lifecycle event sequence; independent of authorizationVersion."
           }
         },
         "required": [
@@ -1619,7 +1624,8 @@
           "status",
           "version",
           "authorizationVersion",
-          "suspensionSource"
+          "suspensionSource",
+          "lifecycleSequence"
         ]
       },
       "Membership": {

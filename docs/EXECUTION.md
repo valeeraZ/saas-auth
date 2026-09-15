@@ -39,4 +39,16 @@
 
 ## 当前候选产物
 
-见 docs/adr、docs/AUTH-CONTRACT.md、contracts/openapi.json 与 contracts/events。静态验证通过，尚待契约评审；不把检查框等同于服务实现验收。Keycloak 选择已确认。
+见 docs/adr、docs/AUTH-CONTRACT.md、contracts/openapi.json 与 contracts/events。Keycloak 选择已确认。跨仓库检查见 docs/CROSS-REPO-REVIEW.md；补充 lifecycleSequence 和独立授权事件。
+
+## AUTH-02 第一阶段进度
+
+- [x] PostgreSQL 迁移、连接池、健康检查、Docker/本地启动、受限运维 bootstrap
+- [x] 机器身份与租户/应用许可、幂等角色列表/创建/删除和租户快照
+- [x] 原子审计/outbox、租约重试、角色撤销和跨租户/应用隔离测试
+- [x] 真实 PostgreSQL、真实 Keycloak client_credentials、独立打包与本地 Docker 构建验证
+- [ ] 用户登录/注册/验证/找回/退出、token exchange 和会话撤销
+- [ ] 租户/成员/邀请 API、最后 owner 竞争与业务邮件
+- [ ] Admin/Portal 真实消费、生产 Helm/Operator 与完整 AUTH-02 验收
+
+完整 Issue 的复选框保持未完成，不用机器身份阶段替代用户流程验收。详见 docs/SERVICE-FOUNDATION.md。
