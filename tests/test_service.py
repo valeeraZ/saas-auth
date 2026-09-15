@@ -30,7 +30,7 @@ def test_health_and_schema_migration(env, database_url):
     assert env.client.get("/health/live").status_code == 200
     assert env.client.get("/health/ready").status_code == 200
     with env.pool.connection() as conn:
-        assert conn.execute("SELECT count(*) AS n FROM schema_migrations").fetchone()["n"] == 1
+        assert conn.execute("SELECT count(*) AS n FROM schema_migrations").fetchone()["n"] == 2
 
 
 def test_create_replay_delete_replay(env, headers):
@@ -82,7 +82,10 @@ def test_restart_replays_persisted_response(env, headers):
         assert replay.status_code == 201
         assert replay.json() == original.json()
         spec = restarted.get("/openapi.json").json()
-        assert spec["paths"]["/v1/tenants/{tenantId}"]["get"]["security"] == [{"serviceAccess": []}]
+        assert spec["paths"]["/v1/tenants/{tenantId}"]["get"]["security"] == [
+            {"serviceAccess": []},
+            {"userAccess": []},
+        ]
     assert count(env, "outbox") == 3
 
 
@@ -162,7 +165,7 @@ def test_cross_tenant_app_and_human_impersonation(env, headers):
         "X-User-ID": "service-subject",
     }
     assert env.client.get(env.path, headers=human).status_code == 403
-    assert env.client.get(f"/v1/tenants/{env.tenant}/members", headers=headers).status_code == 404
+    assert env.client.get(f"/v1/tenants/{env.tenant}/members", headers=headers).status_code == 403
 
 
 def test_foreign_role_cannot_be_deleted(env, headers):

@@ -3,7 +3,7 @@
   "info": {
     "title": "SaaS Auth API",
     "version": "0.1.0-draft",
-    "description": "Candidate contract. The service foundation implements only machine tenant snapshots and role APIs; user flows remain pending. Identity provider: Keycloak; business authorization owned by Auth."
+    "description": "Auth service contract: machine and user APIs for identity, tenants, memberships, invitations, roles and session revocation. Identity provider: Keycloak; business authorization owned by Auth. Portal BFF and production deployment require separate integration."
   },
   "servers": [
     {

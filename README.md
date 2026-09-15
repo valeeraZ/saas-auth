@@ -2,7 +2,9 @@
 
 身份与授权服务仓库。平台使用 Keycloak 完成认证，Auth 拥有用户映射、租户、成员、邀请和业务角色事实。
 
-当前为 AUTH-02 第一阶段：可运行的机器身份与角色 API，使用 PostgreSQL、FastAPI、Keycloak 签名验证及事务 outbox。完整候选契约的用户/邀请/会话流程仍待实现。
+当前为 AUTH-02 用户与租户阶段：在机器身份基础上实现用户映射、租户/成员/邀请、角色授权、会话撤销及持久私有任务。20 个契约操作已接入服务；Portal BFF 和生产部署另行集成。
+
+- [用户与租户阶段范围](docs/USER-TENANCY.md)
 
 - [当前运行范围与限制](docs/SERVICE-FOUNDATION.md)
 - [跨仓库契约检查](docs/CROSS-REPO-REVIEW.md)
@@ -17,9 +19,10 @@
 快速启动（Docker Compose）：
 
 ```sh
-python3 scripts/prepare_local.py
+uv sync --frozen
+uv run python scripts/prepare_local.py
 docker compose up --build -d
 curl --fail http://127.0.0.1:58000/health/ready
 ```
 
-本地随机凭据不会提交；服务许可配置和 uv 验证命令见启动文档。机器身份测试不代表用户 OIDC、MFA、会话及邀请流程已验收。源仓库保持只读；不发布公共包、不部署生产。
+本地随机凭据不会提交；服务许可配置和 uv 验证命令见启动文档。Compose 默认提供机器接口联调；用户 OIDC 协议测试使用独立 HTTPS Keycloak，不代表 Portal 浏览器 UI 或 MFA 已验收。源仓库保持只读；不发布公共包、不部署生产。

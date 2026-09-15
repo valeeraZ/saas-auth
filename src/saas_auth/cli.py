@@ -98,6 +98,8 @@ def main():
     )
     sub.add_parser("outbox-once")
     sub.add_parser("outbox-worker")
+    sub.add_parser("private-tasks-once")
+    sub.add_parser("private-tasks-worker")
     args = parser.parse_args()
     database_url = os.environ["SAAS_DATABASE_URL"]
     if args.command == "migrate":
@@ -133,6 +135,17 @@ def main():
                 scopes=args.scope,
                 actor="operator:" + os.environ["SAAS_OPERATOR_ID"],
             )
+        elif args.command.startswith("private-tasks"):
+            from saas_auth.config import Settings
+            from saas_auth.private_tasks import deliver_once
+
+            settings = Settings.from_env()
+            while True:
+                worked = deliver_once(pool, settings)
+                if args.command == "private-tasks-once":
+                    break
+                if not worked:
+                    time.sleep(1)
         else:
             from saas_auth.outbox import deliver_once
 

@@ -52,3 +52,7 @@
 - [ ] Admin/Portal 真实消费、生产 Helm/Operator 与完整 AUTH-02 验收
 
 完整 Issue 的复选框保持未完成，不用机器身份阶段替代用户流程验收。详见 docs/SERVICE-FOUNDATION.md。
+
+## AUTH-02 第二阶段进度
+
+已实现用户映射/会话、租户/成员/邀请、角色分配/权限查询和加密私有任务；新增真实 OIDC 与 SMTP 测试。测试最终状态以分支 CI 和 USER-TENANCY.md 为准。Portal BFF、生产部署和跨仓库端到端验收仍待后续阶段，完整 Issue 不关闭。

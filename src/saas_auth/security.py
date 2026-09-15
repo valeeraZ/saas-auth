@@ -12,6 +12,11 @@ class Identity:
     subject: str
     client_id: str
     scopes: frozenset[str]
+    human: bool = False
+    sid: str = ""
+    email: str = ""
+    email_verified: bool = False
+    display_name: str = ""
 
 
 class TokenVerifier:
@@ -24,7 +29,7 @@ class TokenVerifier:
             lifespan=60,
         )
 
-    def verify(self, authorization: str | None) -> Identity:
+    def verify(self, authorization: str | None, *, check_session=True) -> Identity:
         if (
             not authorization
             or not authorization.startswith("Bearer ")
@@ -55,11 +60,31 @@ class TokenVerifier:
                 or not 0 < claims["exp"] - claims["iat"] <= 300
             ):
                 raise jwt.InvalidTokenError()
+            human = claims["azp"] in self.settings.user_clients
+            if human:
+                if (
+                    not isinstance(claims.get("sid"), str)
+                    or not 1 <= len(claims["sid"]) <= 200
+                    or not isinstance(claims.get("email"), str)
+                    or not 3 <= len(claims["email"]) <= 254
+                    or "@" not in claims["email"]
+                    or type(claims.get("email_verified")) is not bool
+                ):
+                    raise jwt.InvalidTokenError()
+                if check_session:
+                    from saas_auth.provider import introspect
+
+                    introspect(self.settings, token, claims["sub"], claims["sid"])
             return Identity(
                 claims["iss"],
                 claims["sub"],
                 claims["azp"],
                 frozenset(claims.get("scope", "").split()),
+                human,
+                claims.get("sid", "") if human else "",
+                claims.get("email", "").casefold() if human else "",
+                claims.get("email_verified", False) if human else False,
+                str(claims.get("name") or claims.get("preferred_username") or "User")[:200],
             )
         except PyJWKClientConnectionError:
             raise unavailable() from None

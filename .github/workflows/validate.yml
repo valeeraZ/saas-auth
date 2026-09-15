@@ -23,27 +23,51 @@ jobs:
           python-version: "3.11"
       - run: python -m pip install uv==0.11.7
       - run: uv sync --frozen
-      - run: uv run ruff check src tests scripts/prepare_local.py
+      - run: uv run ruff check src tests scripts/prepare_local.py scripts/realm_users.py scripts/local_tls.py
       - run: uv run python scripts/validate_contracts.py
       - run: uv run pytest -q -m 'not keycloak'
       - name: Start disposable Keycloak
         run: |
-          python scripts/prepare_local.py
-          docker run -d --name auth-keycloak -p 127.0.0.1:58080:8080 \
+          uv run python scripts/prepare_local.py
+          docker run -d --name auth-keycloak -p 127.0.0.1:58443:8443 \
+            --add-host=host.docker.internal:host-gateway \
             -v "$PWD/.local/saas-local-realm.json:/opt/keycloak/data/import/saas-local-realm.json:ro" \
-            quay.io/keycloak/keycloak:26.7.3@sha256:ff4257d0d64efbe99ed1ddfaf07765cc3c36dc7518bf8324d41961327f441c54 start-dev --import-realm
+            -v "$PWD/.local/tls.crt:/opt/keycloak/conf/tls.crt:ro" \
+            -v "$PWD/.local/tls.key:/opt/keycloak/conf/tls.key:ro" \
+            quay.io/keycloak/keycloak:26.7.3@sha256:ff4257d0d64efbe99ed1ddfaf07765cc3c36dc7518bf8324d41961327f441c54 \
+            start-dev --import-realm --hostname=https://127.0.0.1:58443 \
+            --https-certificate-file=/opt/keycloak/conf/tls.crt \
+            --https-certificate-key-file=/opt/keycloak/conf/tls.key
           for attempt in $(seq 1 60); do
-            if curl -fsS http://127.0.0.1:58080/realms/saas-local/.well-known/openid-configuration > /dev/null; then exit 0; fi
+            if curl --cacert .local/tls.crt -fsS https://127.0.0.1:58443/realms/saas-local/.well-known/openid-configuration > /dev/null; then exit 0; fi
             sleep 2
           done
           exit 1
-      - name: Verify real client credentials
+      - name: Verify real machine and user OIDC with local SMTP
         run: |
           set -a
           . ./.env
           set +a
-          SAAS_TEST_KEYCLOAK_SECRET="$SAAS_LOCAL_CLIENT_SECRET" \
-            SAAS_TEST_KEYCLOAK_ISSUER=http://127.0.0.1:58080/realms/saas-local \
-            uv run pytest -q -m keycloak
+          SSL_CERT_FILE="$PWD/.local/tls.crt" \
+            SAAS_TEST_KEYCLOAK_SECRET="$SAAS_LOCAL_CLIENT_SECRET" \
+            SAAS_TEST_KEYCLOAK_ISSUER=https://127.0.0.1:58443/realms/saas-local \
+            uv run pytest -q -m keycloak --tb=short
       - run: uv build
+      - name: Verify installed wheel resources
+        run: |
+          uv venv /tmp/installed-auth
+          uv pip install --python /tmp/installed-auth/bin/python dist/*.whl
+          cd /tmp
+          /tmp/installed-auth/bin/python -c 'from importlib.resources import files; from saas_auth.api import create_app; assert {p.name for p in files("saas_auth").joinpath("migrations").iterdir()} == {"001_foundation.sql", "002_users_and_invitations.sql"}'
       - run: docker build -t saas-auth:ci .
+      - name: Verify Compose startup and migration readiness
+        run: |
+          docker rm -f auth-keycloak
+          docker compose config --quiet
+          docker compose up --build --wait --wait-timeout 180
+          curl --fail http://127.0.0.1:58000/health/ready
+      - name: Clean disposable containers
+        if: always()
+        run: |
+          docker rm -f auth-keycloak || true
+          docker compose down --volumes --remove-orphans
