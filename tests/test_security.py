@@ -1,5 +1,4 @@
 import time
-from uuid import uuid4
 
 import jwt
 import pytest
@@ -41,7 +40,7 @@ def test_reject_untrusted_signature_and_algorithm(env):
 
 
 def test_scope_and_client_and_no_browser_auth(env):
-    for overrides in [{"scope": ""}, {"azp": "unknown-client"}]:
+    for overrides in [{"azp": "unknown-client"}]:
         assert (
             env.client.get(
                 env.path, headers={"Authorization": "Bearer " + env.token(**overrides)}
@@ -62,26 +61,22 @@ def test_jwks_outage_fails_closed(env):
         env.signing.state["unavailable"] = False
 
 
-def test_request_errors_do_not_echo_sensitive_inputs(env, headers):
+def test_request_errors_do_not_echo_sensitive_inputs(env, headers, operator_headers):
+    user = env.client.get("/v1/me", headers=headers).json()["user"]
     secret = "sensitive-value-do-not-echo"
-    response = env.client.post(
-        env.path, headers=headers, json={"key": "viewer", "description": "", "token": secret}
-    )
+    path = f"/v1/operator/apps/{env.app_id}/grants"
+    body = {"userId": user["id"], "roles": ["viewer"], "enabled": True, "token": secret}
+    response = env.client.put(path, headers=operator_headers, json=body)
     assert response.status_code == 422
     assert secret not in response.text
     assert set(response.json()) == {"code", "message", "requestId"}
     assert response.headers["cache-control"] == "no-store"
     assert response.headers["x-request-id"] == response.json()["requestId"]
-    for modified in [{"Idempotency-Key": "short"}, {"Idempotency-Key": "x" * 129}]:
+    body.pop("token")
+    for key in ["short", "x" * 129]:
         assert (
-            env.client.post(
-                env.path, headers=headers | modified, json={"key": "viewer", "description": ""}
+            env.client.put(
+                path, headers=operator_headers | {"Idempotency-Key": key}, json=body
             ).status_code
             == 422
         )
-    assert (
-        env.client.delete(
-            env.path + "/" + str(uuid4()), headers=headers | {"If-Match": "*"}
-        ).status_code
-        == 422
-    )

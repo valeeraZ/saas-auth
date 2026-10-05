@@ -34,6 +34,11 @@ services:
       SAAS_OIDC_ISSUER: http://keycloak:8080/realms/saas-local
       SAAS_CURSOR_SECRET: ${SAAS_CURSOR_SECRET:?Run scripts/prepare_local.py}
       SAAS_ALLOW_INSECURE_LOCAL: "true"
+      SAAS_USER_CLIENTS: saas-portal
+      SAAS_INTROSPECTION_CLIENT: saas-auth
+      SAAS_INTROSPECTION_SECRET: ${SAAS_INTROSPECTION_SECRET}
+      SAAS_TASK_KEY: ${SAAS_TASK_KEY}
+      SAAS_APP_OPERATOR_KEY: ${SAAS_APP_OPERATOR_KEY}
     depends_on:
       migrate: {condition: service_completed_successfully}
     ports: ["127.0.0.1:58000:8000"]
