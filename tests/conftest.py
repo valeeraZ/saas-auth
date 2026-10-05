@@ -86,7 +86,7 @@ def database_url():
 def env(database_url, signing, monkeypatch):
     with psycopg.connect(database_url) as conn:
         conn.execute(
-            "TRUNCATE users,service_principals,app_operations,platform_audit,session_tasks CASCADE"
+            "TRUNCATE app_role_sets,users,service_principals,app_operations,platform_audit,session_tasks CASCADE"
         )
     pool = make_pool(database_url)
     pool.open(wait=True)
@@ -126,6 +126,12 @@ def env(database_url, signing, monkeypatch):
     monkeypatch.setenv("SAAS_APP_OPERATOR_KEY", "operator-key-32-characters-test-only")
     signing.state["unavailable"] = False
     signing.state["inactive"].clear()
+    app_id = uuid4()
+    with pool.connection() as conn:
+        conn.execute("INSERT INTO app_role_sets(app_id) VALUES(%s)", (app_id,))
+        conn.execute(
+            "INSERT INTO app_roles(app_id,key,name) VALUES(%s,'viewer','Viewer')", (app_id,)
+        )
     with TestClient(app) as client:
         yield SimpleNamespace(
             pool=pool,
@@ -135,7 +141,7 @@ def env(database_url, signing, monkeypatch):
             token=token,
             signing=signing,
             path="/v1/me",
-            app_id=uuid4(),
+            app_id=app_id,
         )
     pool.close()
 

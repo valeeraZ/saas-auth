@@ -161,6 +161,11 @@ class AppService:
                 raise ApiError(404, "not_found", "User not found.")
             if enabled and user["status"] != "active":
                 raise forbidden()
+            from saas_auth.access_service import app_lock, valid_roles
+
+            app_lock(conn, app_id)
+            if enabled:
+                valid_roles(conn, app_id, roles)
             row = conn.execute(
                 "INSERT INTO user_app_grants(user_id,app_id,roles,enabled) VALUES(%s,%s,%s,%s) ON CONFLICT(user_id,app_id) DO UPDATE SET roles=excluded.roles,enabled=excluded.enabled,version=user_app_grants.version+1 RETURNING version",
                 (user_id, app_id, roles, enabled),

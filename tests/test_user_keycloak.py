@@ -205,6 +205,15 @@ def test_code_pkce_exchange_and_durable_upstream_logout(env, oidc, monkeypatch):
         "X-Auth-Operator-Actor": "test:real-oidc",
         "Idempotency-Key": str(uuid4()),
     }
+    configured = client.put(
+        f"/v1/operator/apps/{app_id}/roles",
+        headers=grant_headers | {"Idempotency-Key": str(uuid4())},
+        json={
+            "version": 0,
+            "roles": [{"key": "viewer", "name": "Viewer", "description": "", "active": True}],
+        },
+    )
+    assert configured.status_code == 200
     path = f"/v1/apps/{app_id}/permissions"
     assert client.get(path, headers=headers).json()["allowed"] is False
     assert (
