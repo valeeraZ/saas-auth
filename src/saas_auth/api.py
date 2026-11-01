@@ -111,7 +111,7 @@ def create_app(settings=None):
             # A database reachable before migrations is not ready to serve traffic.
             try:
                 if not conn.execute(
-                    "SELECT 1 FROM schema_migrations WHERE name='003_user_app_platform.sql'"
+                    "SELECT 1 FROM schema_migrations WHERE name='004_app_access_requests.sql'"
                 ).fetchone():
                     raise unavailable()
             except psycopg.errors.UndefinedTable:

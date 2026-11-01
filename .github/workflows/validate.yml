@@ -57,7 +57,7 @@ jobs:
           uv venv /tmp/installed-auth
           uv pip install --python /tmp/installed-auth/bin/python dist/*.whl
           cd /tmp
-          /tmp/installed-auth/bin/python -c 'from importlib.resources import files; from saas_auth.api import create_app; assert {p.name for p in files("saas_auth").joinpath("migrations").iterdir()} == {"001_foundation.sql", "002_users_and_invitations.sql", "003_user_app_platform.sql"}'
+          /tmp/installed-auth/bin/python -c 'from importlib.resources import files; from saas_auth.api import create_app; assert {p.name for p in files("saas_auth").joinpath("migrations").iterdir()} == {"001_foundation.sql", "002_users_and_invitations.sql", "003_user_app_platform.sql", "004_app_access_requests.sql"}'
       - run: docker build -t saas-auth:ci .
       - name: Verify Compose startup and migration readiness
         run: |
