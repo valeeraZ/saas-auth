@@ -10,12 +10,12 @@ from uuid import uuid4
 import jwt
 import psycopg
 import pytest
+from cryptography.fernet import Fernet
 from cryptography.hazmat.primitives.asymmetric import rsa
 from fastapi.testclient import TestClient
 from psycopg.conninfo import conninfo_to_dict
 
 from saas_auth.api import create_app
-from saas_auth.cli import bootstrap, configure_service
 from saas_auth.config import Settings
 from saas_auth.db import make_pool, migrate
 
@@ -83,37 +83,22 @@ def database_url():
 
 
 @pytest.fixture
-def env(database_url, signing):
+def env(database_url, signing, monkeypatch):
     with psycopg.connect(database_url) as conn:
-        conn.execute("TRUNCATE tenants,users,service_principals CASCADE")
+        conn.execute(
+            "TRUNCATE users,service_principals,app_operations,platform_audit,session_tasks CASCADE"
+        )
     pool = make_pool(database_url)
     pool.open(wait=True)
-    tenant, app_id = uuid4(), uuid4()
-    bootstrap(
-        pool,
-        issuer=signing.issuer,
-        subject="owner-human",
-        email="owner@example.test",
-        tenant_id=tenant,
-        name="Test tenant",
-        slug="test-tenant",
-        actor="operator:test",
-    )
-    configure_service(
-        pool,
-        issuer=signing.issuer,
-        subject="service-subject",
-        client_id="saas-admin",
-        tenant_id=tenant,
-        app_id=app_id,
-        scopes=["tenants:read", "roles:read", "roles:write"],
-        actor="operator:test",
-    )
     settings = Settings(
         database_url,
         signing.issuer,
         "test-cursor-secret-32-characters-long",
         allow_insecure_local=True,
+        user_clients=("saas-portal",),
+        introspection_client="saas-auth",
+        introspection_secret="test-only",
+        task_key=Fernet.generate_key().decode(),
     )
     app = create_app(settings)
 
@@ -122,29 +107,35 @@ def env(database_url, signing):
         claims = dict(
             iss=signing.issuer,
             aud="saas-auth",
-            sub="service-subject",
-            azp="saas-admin",
+            sub="user-human",
+            azp="saas-portal",
             exp=now + 300,
             iat=now,
             typ="Bearer",
-            scope="tenants:read roles:read roles:write",
+            scope="openid profile email",
+            sid="human-session",
+            email="user@example.test",
+            email_verified=True,
+            name="Test user",
         )
         claims.update(overrides)
         return jwt.encode(
             claims, signing.key, algorithm="RS256", headers={"kid": "integration-key"}
         )
 
+    monkeypatch.setenv("SAAS_APP_OPERATOR_KEY", "operator-key-32-characters-test-only")
+    signing.state["unavailable"] = False
+    signing.state["inactive"].clear()
     with TestClient(app) as client:
         yield SimpleNamespace(
             pool=pool,
-            tenant=tenant,
-            app_id=app_id,
             settings=settings,
             app=app,
             client=client,
             token=token,
             signing=signing,
-            path=f"/v1/tenants/{tenant}/apps/{app_id}/roles",
+            path="/v1/me",
+            app_id=uuid4(),
         )
     pool.close()
 
@@ -152,3 +143,12 @@ def env(database_url, signing):
 @pytest.fixture
 def headers(env):
     return {"Authorization": "Bearer " + env.token(), "Idempotency-Key": str(uuid4())}
+
+
+@pytest.fixture
+def operator_headers():
+    return {
+        "X-Auth-Operator-Key": "operator-key-32-characters-test-only",
+        "X-Auth-Operator-Actor": "operator:test",
+        "Idempotency-Key": str(uuid4()),
+    }

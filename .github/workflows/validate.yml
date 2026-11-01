@@ -43,13 +43,12 @@ jobs:
             sleep 2
           done
           exit 1
-      - name: Verify real machine and user OIDC with local SMTP
+      - name: Verify real user OIDC with local SMTP
         run: |
           set -a
           . ./.env
           set +a
           SSL_CERT_FILE="$PWD/.local/tls.crt" \
-            SAAS_TEST_KEYCLOAK_SECRET="$SAAS_LOCAL_CLIENT_SECRET" \
             SAAS_TEST_KEYCLOAK_ISSUER=https://127.0.0.1:58443/realms/saas-local \
             uv run pytest -q -m keycloak --tb=short
       - run: uv build
@@ -58,7 +57,7 @@ jobs:
           uv venv /tmp/installed-auth
           uv pip install --python /tmp/installed-auth/bin/python dist/*.whl
           cd /tmp
-          /tmp/installed-auth/bin/python -c 'from importlib.resources import files; from saas_auth.api import create_app; assert {p.name for p in files("saas_auth").joinpath("migrations").iterdir()} == {"001_foundation.sql", "002_users_and_invitations.sql"}'
+          /tmp/installed-auth/bin/python -c 'from importlib.resources import files; from saas_auth.api import create_app; assert {p.name for p in files("saas_auth").joinpath("migrations").iterdir()} == {"001_foundation.sql", "002_users_and_invitations.sql", "003_user_app_platform.sql"}'
       - run: docker build -t saas-auth:ci .
       - name: Verify Compose startup and migration readiness
         run: |

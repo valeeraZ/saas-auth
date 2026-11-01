@@ -198,21 +198,30 @@ def test_code_pkce_exchange_and_durable_upstream_logout(env, oidc, monkeypatch):
     me = client.get("/v1/me", headers=headers)
     assert me.status_code == 200, "Auth rejected real exchanged user token"
     assert me.json()["user"]["emailVerified"] is True
-    assert me.json()["tenants"] == []
+    assert set(me.json()) == {"user"}
+    app_id = uuid4()
+    grant_headers = {
+        "X-Auth-Operator-Key": "operator-key-32-characters-test-only",
+        "X-Auth-Operator-Actor": "test:real-oidc",
+        "Idempotency-Key": str(uuid4()),
+    }
+    path = f"/v1/apps/{app_id}/permissions"
+    assert client.get(path, headers=headers).json()["allowed"] is False
     assert (
-        client.post(
-            "/v1/tenants", headers=headers, json={"name": "Real user tenant", "slug": "real-user"}
+        client.put(
+            f"/v1/operator/apps/{app_id}/grants",
+            headers=grant_headers,
+            json={"userId": me.json()["user"]["id"], "roles": ["viewer"], "enabled": True},
         ).status_code
-        == 201
+        == 200
     )
+    assert client.get(path, headers=headers).json()["allowed"] is True
     assert client.delete("/v1/sessions/current", headers=headers).status_code == 204
     assert client.get("/v1/me", headers=headers).status_code == 401
     monkeypatch.setenv("SAAS_SESSION_WORKER_CLIENT", "saas-session-worker")
     assert deliver_once(env.pool, settings)
     with env.pool.connection() as conn:
-        task = conn.execute(
-            "SELECT completed_at FROM private_tasks WHERE kind='session_revoke'"
-        ).fetchone()
+        task = conn.execute("SELECT completed_at FROM session_tasks").fetchone()
         assert task["completed_at"] is not None, "Upstream session revocation worker failed"
     refreshed = flow.http.post(
         flow.issuer + "/protocol/openid-connect/token",
