@@ -1,4 +1,15 @@
 name: saas-auth-local
+x-session-environment: &session-environment
+  SAAS_DATABASE_URL: postgresql://saas_auth:${SAAS_POSTGRES_PASSWORD}@postgres:5432/saas_auth
+  SAAS_OIDC_ISSUER: http://keycloak:8080/realms/saas-local
+  SAAS_CURSOR_SECRET: ${SAAS_CURSOR_SECRET:?Run scripts/prepare_local.py}
+  SAAS_ALLOW_INSECURE_LOCAL: "true"
+  SAAS_USER_CLIENTS: saas-portal
+  SAAS_INTROSPECTION_CLIENT: saas-auth
+  SAAS_INTROSPECTION_SECRET: ${SAAS_INTROSPECTION_SECRET}
+  SAAS_SESSION_WORKER_CLIENT: saas-session-worker
+  SAAS_SESSION_WORKER_SECRET: ${SAAS_SESSION_WORKER_SECRET}
+  SAAS_TASK_KEY: ${SAAS_TASK_KEY}
 services:
   postgres:
     image: postgres:17-alpine@sha256:742f40ea20b9ff2ff31db5458d127452988a2164df9e17441e191f3b72252193
@@ -22,7 +33,7 @@ services:
     volumes: ["./.local/saas-local-realm.json:/opt/keycloak/data/import/saas-local-realm.json:ro"]
   migrate:
     build: .
-    command: ["saas-auth", "migrate"]
+    command: ["alembic", "upgrade", "head"]
     environment:
       SAAS_DATABASE_URL: postgresql://saas_auth:${SAAS_POSTGRES_PASSWORD}@postgres:5432/saas_auth
     depends_on:
@@ -30,14 +41,7 @@ services:
   auth:
     build: .
     environment:
-      SAAS_DATABASE_URL: postgresql://saas_auth:${SAAS_POSTGRES_PASSWORD}@postgres:5432/saas_auth
-      SAAS_OIDC_ISSUER: http://keycloak:8080/realms/saas-local
-      SAAS_CURSOR_SECRET: ${SAAS_CURSOR_SECRET:?Run scripts/prepare_local.py}
-      SAAS_ALLOW_INSECURE_LOCAL: "true"
-      SAAS_USER_CLIENTS: saas-portal
-      SAAS_INTROSPECTION_CLIENT: saas-auth
-      SAAS_INTROSPECTION_SECRET: ${SAAS_INTROSPECTION_SECRET}
-      SAAS_TASK_KEY: ${SAAS_TASK_KEY}
+      <<: *session-environment
       SAAS_APP_OPERATOR_KEY: ${SAAS_APP_OPERATOR_KEY}
     depends_on:
       migrate: {condition: service_completed_successfully}
@@ -47,5 +51,11 @@ services:
       interval: 5s
       timeout: 4s
       retries: 10
+  worker:
+    build: .
+    command: ["saas-auth", "private-tasks-worker"]
+    environment: *session-environment
+    depends_on:
+      migrate: {condition: service_completed_successfully}
 volumes:
   auth-db:

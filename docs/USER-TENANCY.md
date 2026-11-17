@@ -14,7 +14,7 @@
 
 启用用户 API 需要 `SAAS_USER_CLIENTS`、`SAAS_INTROSPECTION_CLIENT`、`SAAS_INTROSPECTION_SECRET`、`SAAS_TASK_KEY`。任务密钥为 Fernet 密钥，须持久保管；不能随进程启动随机更换，否则已有任务无法解密。
 
-独立进程运行 `saas-auth private-tasks-worker`；单次领取用 `private-tasks-once`。任务使用租约、领取标识、重试和完成后清除密文。上游撤销使用独立 `SAAS_SESSION_WORKER_CLIENT` / `SAAS_SESSION_WORKER_SECRET`；测试 realm 授予其 Keycloak `manage-users`，该凭据不可交给 Portal 或浏览器，生产需独立管理和审计。
+独立进程运行 `saas-auth private-tasks-worker`。任务使用租约、领取标识、重试和完成后清除密文。上游撤销使用独立 `SAAS_SESSION_WORKER_CLIENT` / `SAAS_SESSION_WORKER_SECRET`；测试 realm 授予其 Keycloak `manage-users`，该凭据不可交给 Portal 或浏览器，生产需独立管理和审计。
 
 邀请邮件需 `SAAS_INVITATION_URL`（HTTPS、无查询/fragment）、`SAAS_SMTP_HOST`、`SAAS_SMTP_PORT`、`SAAS_SMTP_FROM`，可选用户名/密码。默认 STARTTLS。仅显式本地配置可对 localhost/mailpit 使用明文 SMTP。链接令牌放入 URL fragment，后续 Portal 页面需读取、立即清除并通过 BFF 提交接受请求；该页面尚未实现。
 

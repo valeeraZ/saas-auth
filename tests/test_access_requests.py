@@ -1,9 +1,9 @@
 from concurrent.futures import ThreadPoolExecutor
 from uuid import uuid4
 
-from saas_auth.access_service import AccessService
-from saas_auth.app_service import AppService
 from saas_auth.errors import ApiError
+from saas_auth.services.access import AccessService
+from saas_auth.services.users import AppService
 
 
 def roles(env, operator_headers, names=("viewer", "editor"), version=1):
@@ -149,7 +149,7 @@ def test_browser_cannot_forge_reviewer_or_user(env, headers, operator_headers):
 def test_concurrent_decisions_grant_exactly_once(env, headers, operator_headers):
     roles(env, operator_headers)
     request = submit(env, headers).json()
-    service = AccessService(AppService(env.pool, env.settings))
+    service = AccessService(AppService(env.database, env.settings))
 
     def review(decision):
         try:

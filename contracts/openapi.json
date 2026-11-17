@@ -51,6 +51,16 @@
                 }
               }
             }
+          },
+          "422": {
+            "description": "Invalid request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -93,11 +103,11 @@
             }
           },
           "422": {
-            "description": "Validation Error",
+            "description": "Invalid request",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
+                  "$ref": "#/components/schemas/ErrorResponse"
                 }
               }
             }
@@ -129,188 +139,29 @@
         ],
         "responses": {
           "204": {
-            "description": "Successful Response"
+            "description": "Local and Keycloak sessions revoked"
           },
           "422": {
-            "description": "Validation Error",
+            "description": "Invalid request",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "202": {
+            "description": "Local session revoked; upstream revocation pending",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RevocationPending"
                 }
               }
             }
           }
         }
-      }
-    },
-    "/v1/operator/users": {
-      "get": {
-        "summary": "Users",
-        "operationId": "users_v1_operator_users_get",
-        "parameters": [
-          {
-            "name": "cursor",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "type": "string",
-              "format": "uuid",
-              "default": "00000000-0000-0000-0000-000000000000",
-              "title": "Cursor"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/UserPage"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
-          }
-        },
-        "security": [
-          {
-            "operatorKey": []
-          }
-        ],
-        "description": "Private operator boundary. Requires a server-held key and trusted X-Auth-Operator-Actor audit label. Human access tokens do not grant operator capability."
-      }
-    },
-    "/v1/operator/apps/{appId}/grants": {
-      "get": {
-        "summary": "Grants",
-        "operationId": "grants_v1_operator_apps__appId__grants_get",
-        "parameters": [
-          {
-            "name": "appId",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "format": "uuid",
-              "title": "Appid"
-            }
-          },
-          {
-            "name": "cursor",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "type": "string",
-              "format": "uuid",
-              "default": "00000000-0000-0000-0000-000000000000",
-              "title": "Cursor"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/GrantPage"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
-          }
-        },
-        "security": [
-          {
-            "operatorKey": []
-          }
-        ],
-        "description": "Private operator boundary. Requires a server-held key and trusted X-Auth-Operator-Actor audit label. Human access tokens do not grant operator capability."
-      },
-      "put": {
-        "summary": "Grant",
-        "operationId": "grant_v1_operator_apps__appId__grants_put",
-        "parameters": [
-          {
-            "name": "appId",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "format": "uuid",
-              "title": "Appid"
-            }
-          },
-          {
-            "name": "Idempotency-Key",
-            "in": "header",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "minLength": 16,
-              "maxLength": 128,
-              "title": "Idempotency-Key"
-            }
-          }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/Grant"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/AppGrant"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
-          }
-        },
-        "security": [
-          {
-            "operatorKey": []
-          }
-        ],
-        "description": "Private operator boundary. Requires a server-held key and trusted X-Auth-Operator-Actor audit label. Human access tokens do not grant operator capability."
       }
     },
     "/v1/apps/{appId}/roles": {
@@ -346,11 +197,11 @@
             }
           },
           "422": {
-            "description": "Validation Error",
+            "description": "Invalid request",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
+                  "$ref": "#/components/schemas/ErrorResponse"
                 }
               }
             }
@@ -391,11 +242,11 @@
             }
           },
           "422": {
-            "description": "Validation Error",
+            "description": "Invalid request",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
+                  "$ref": "#/components/schemas/ErrorResponse"
                 }
               }
             }
@@ -455,11 +306,11 @@
             }
           },
           "422": {
-            "description": "Validation Error",
+            "description": "Invalid request",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
+                  "$ref": "#/components/schemas/ErrorResponse"
                 }
               }
             }
@@ -467,10 +318,72 @@
         }
       }
     },
-    "/v1/operator/apps/{appId}/roles": {
+    "/v1/operator/users": {
       "get": {
-        "summary": "Role Definitions",
-        "operationId": "role_definitions_v1_operator_apps__appId__roles_get",
+        "summary": "Users",
+        "operationId": "users_v1_operator_users_get",
+        "security": [
+          {
+            "operatorKey": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "cursor",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "default": "00000000-0000-0000-0000-000000000000",
+              "title": "Cursor"
+            }
+          },
+          {
+            "name": "X-Auth-Operator-Actor",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "Trusted operator identity for the audit log.",
+              "title": "X-Auth-Operator-Actor"
+            },
+            "description": "Trusted operator identity for the audit log."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserPage"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Invalid request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/operator/apps/{appId}/grants": {
+      "get": {
+        "summary": "Grants",
+        "operationId": "grants_v1_operator_apps__appId__grants_get",
+        "security": [
+          {
+            "operatorKey": []
+          }
+        ],
         "parameters": [
           {
             "name": "appId",
@@ -481,6 +394,28 @@
               "format": "uuid",
               "title": "Appid"
             }
+          },
+          {
+            "name": "cursor",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "default": "00000000-0000-0000-0000-000000000000",
+              "title": "Cursor"
+            }
+          },
+          {
+            "name": "X-Auth-Operator-Actor",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "Trusted operator identity for the audit log.",
+              "title": "X-Auth-Operator-Actor"
+            },
+            "description": "Trusted operator identity for the audit log."
           }
         ],
         "responses": {
@@ -489,32 +424,31 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/RoleSet"
+                  "$ref": "#/components/schemas/GrantPage"
                 }
               }
             }
           },
           "422": {
-            "description": "Validation Error",
+            "description": "Invalid request",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
+                  "$ref": "#/components/schemas/ErrorResponse"
                 }
               }
             }
           }
-        },
+        }
+      },
+      "put": {
+        "summary": "Grant",
+        "operationId": "grant_v1_operator_apps__appId__grants_put",
         "security": [
           {
             "operatorKey": []
           }
         ],
-        "description": "Private operator boundary. Requires a server-held key and trusted X-Auth-Operator-Actor audit label. Human access tokens do not grant operator capability."
-      },
-      "put": {
-        "summary": "Configure Roles",
-        "operationId": "configure_roles_v1_operator_apps__appId__roles_put",
         "parameters": [
           {
             "name": "appId",
@@ -536,6 +470,148 @@
               "maxLength": 128,
               "title": "Idempotency-Key"
             }
+          },
+          {
+            "name": "X-Auth-Operator-Actor",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "Trusted operator identity for the audit log.",
+              "title": "X-Auth-Operator-Actor"
+            },
+            "description": "Trusted operator identity for the audit log."
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Grant"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AppGrant"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Invalid request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/operator/apps/{appId}/roles": {
+      "get": {
+        "summary": "Role Definitions",
+        "operationId": "role_definitions_v1_operator_apps__appId__roles_get",
+        "security": [
+          {
+            "operatorKey": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "appId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Appid"
+            }
+          },
+          {
+            "name": "X-Auth-Operator-Actor",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "Trusted operator identity for the audit log.",
+              "title": "X-Auth-Operator-Actor"
+            },
+            "description": "Trusted operator identity for the audit log."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RoleSet"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Invalid request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "summary": "Configure Roles",
+        "operationId": "configure_roles_v1_operator_apps__appId__roles_put",
+        "security": [
+          {
+            "operatorKey": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "appId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Appid"
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 16,
+              "maxLength": 128,
+              "title": "Idempotency-Key"
+            }
+          },
+          {
+            "name": "X-Auth-Operator-Actor",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "Trusted operator identity for the audit log.",
+              "title": "X-Auth-Operator-Actor"
+            },
+            "description": "Trusted operator identity for the audit log."
           }
         ],
         "requestBody": {
@@ -560,28 +636,27 @@
             }
           },
           "422": {
-            "description": "Validation Error",
+            "description": "Invalid request",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
+                  "$ref": "#/components/schemas/ErrorResponse"
                 }
               }
             }
           }
-        },
-        "security": [
-          {
-            "operatorKey": []
-          }
-        ],
-        "description": "Private operator boundary. Requires a server-held key and trusted X-Auth-Operator-Actor audit label. Human access tokens do not grant operator capability."
+        }
       }
     },
     "/v1/operator/requests": {
       "get": {
         "summary": "Requests",
         "operationId": "requests_v1_operator_requests_get",
+        "security": [
+          {
+            "operatorKey": []
+          }
+        ],
         "parameters": [
           {
             "name": "cursor",
@@ -610,6 +685,17 @@
               ],
               "title": "Status"
             }
+          },
+          {
+            "name": "X-Auth-Operator-Actor",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "Trusted operator identity for the audit log.",
+              "title": "X-Auth-Operator-Actor"
+            },
+            "description": "Trusted operator identity for the audit log."
           }
         ],
         "responses": {
@@ -624,28 +710,27 @@
             }
           },
           "422": {
-            "description": "Validation Error",
+            "description": "Invalid request",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
+                  "$ref": "#/components/schemas/ErrorResponse"
                 }
               }
             }
           }
-        },
-        "security": [
-          {
-            "operatorKey": []
-          }
-        ],
-        "description": "Private operator boundary. Requires a server-held key and trusted X-Auth-Operator-Actor audit label. Human access tokens do not grant operator capability."
+        }
       }
     },
     "/v1/operator/requests/{requestId}": {
       "put": {
         "summary": "Decide",
         "operationId": "decide_v1_operator_requests__requestId__put",
+        "security": [
+          {
+            "operatorKey": []
+          }
+        ],
         "parameters": [
           {
             "name": "requestId",
@@ -667,6 +752,17 @@
               "maxLength": 128,
               "title": "Idempotency-Key"
             }
+          },
+          {
+            "name": "X-Auth-Operator-Actor",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "Trusted operator identity for the audit log.",
+              "title": "X-Auth-Operator-Actor"
+            },
+            "description": "Trusted operator identity for the audit log."
           }
         ],
         "requestBody": {
@@ -691,22 +787,16 @@
             }
           },
           "422": {
-            "description": "Validation Error",
+            "description": "Invalid request",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
+                  "$ref": "#/components/schemas/ErrorResponse"
                 }
               }
             }
           }
-        },
-        "security": [
-          {
-            "operatorKey": []
-          }
-        ],
-        "description": "Private operator boundary. Requires a server-held key and trusted X-Auth-Operator-Actor audit label. Human access tokens do not grant operator capability."
+        }
       }
     }
   },
@@ -856,6 +946,30 @@
         ],
         "title": "Decision"
       },
+      "ErrorResponse": {
+        "properties": {
+          "code": {
+            "type": "string",
+            "title": "Code"
+          },
+          "message": {
+            "type": "string",
+            "title": "Message"
+          },
+          "requestId": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Requestid"
+          }
+        },
+        "type": "object",
+        "required": [
+          "code",
+          "message",
+          "requestId"
+        ],
+        "title": "ErrorResponse"
+      },
       "Grant": {
         "properties": {
           "userId": {
@@ -915,19 +1029,6 @@
           "nextCursor"
         ],
         "title": "GrantPage"
-      },
-      "HTTPValidationError": {
-        "properties": {
-          "detail": {
-            "items": {
-              "$ref": "#/components/schemas/ValidationError"
-            },
-            "type": "array",
-            "title": "Detail"
-          }
-        },
-        "type": "object",
-        "title": "HTTPValidationError"
       },
       "ListedGrant": {
         "properties": {
@@ -1121,6 +1222,20 @@
         ],
         "title": "RequestRecord"
       },
+      "RevocationPending": {
+        "properties": {
+          "upstreamRevocation": {
+            "type": "string",
+            "const": "pending",
+            "title": "Upstreamrevocation"
+          }
+        },
+        "type": "object",
+        "required": [
+          "upstreamRevocation"
+        ],
+        "title": "RevocationPending"
+      },
       "RoleConfiguration": {
         "properties": {
           "version": {
@@ -1268,46 +1383,6 @@
           "nextCursor"
         ],
         "title": "UserPage"
-      },
-      "ValidationError": {
-        "properties": {
-          "loc": {
-            "items": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "integer"
-                }
-              ]
-            },
-            "type": "array",
-            "title": "Location"
-          },
-          "msg": {
-            "type": "string",
-            "title": "Message"
-          },
-          "type": {
-            "type": "string",
-            "title": "Error Type"
-          },
-          "input": {
-            "title": "Input"
-          },
-          "ctx": {
-            "type": "object",
-            "title": "Context"
-          }
-        },
-        "type": "object",
-        "required": [
-          "loc",
-          "msg",
-          "type"
-        ],
-        "title": "ValidationError"
       }
     },
     "securitySchemes": {
@@ -1317,6 +1392,7 @@
       },
       "operatorKey": {
         "type": "apiKey",
+        "description": "Private operator credential held by the Admin server.",
         "in": "header",
         "name": "X-Auth-Operator-Key"
       }

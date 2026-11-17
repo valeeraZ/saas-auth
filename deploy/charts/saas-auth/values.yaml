@@ -1,0 +1,43 @@
+namePrefix: saas
+imagePullSecrets: []
+trustSecret: saas-trust
+proxyImage: nginx:1.28-alpine@sha256:a8b39bd9cf0f83869a2162827a0caf6137ddf759d50a171451b335cecc87d236
+workloads:
+  auth:
+    image: ''
+    replicas: 1
+    port: 8000
+    secret: saas-auth
+    env: {}
+    livePath: /health/live
+    readyPath: /health/ready
+    tlsSecret: saas-auth-tls
+    resources:
+      requests:
+        cpu: 100m
+        memory: 128Mi
+      limits:
+        memory: 512Mi
+  worker:
+    image: ''
+    replicas: 1
+    secret: saas-worker
+    env: {}
+    command:
+    - saas-auth
+    - private-tasks-worker
+    resources:
+      requests:
+        cpu: 50m
+        memory: 128Mi
+      limits:
+        memory: 256Mi
+migrations:
+  auth:
+    workload: auth
+    secret: saas-auth-migrate
+    command:
+    - alembic
+    - upgrade
+    - head
+    env: {}

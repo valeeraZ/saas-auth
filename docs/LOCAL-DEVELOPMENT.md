@@ -43,7 +43,7 @@ uv sync --frozen
 export SAAS_DATABASE_URL='postgresql://USER:PASSWORD@127.0.0.1:55433/saas_auth'
 export SAAS_OIDC_ISSUER='https://YOUR-KEYCLOAK/realms/YOUR-REALM'
 export SAAS_CURSOR_SECRET='YOUR-RANDOM-SECRET-AT-LEAST-32-CHARACTERS'
-uv run saas-auth migrate
+uv run alembic upgrade head
 uv run uvicorn saas_auth.api:create_app --factory --port 8000
 ```
 

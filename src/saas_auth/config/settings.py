@@ -1,5 +1,6 @@
 import os
 from dataclasses import dataclass, field
+from typing import Self
 from urllib.parse import urlparse
 
 
@@ -15,7 +16,17 @@ class Settings:
     introspection_secret: str = field(default="", repr=False)
     task_key: str = field(default="", repr=False)
 
-    def __post_init__(self):
+    operator_key: str = field(
+        default_factory=lambda: os.environ.get("SAAS_APP_OPERATOR_KEY", ""), repr=False
+    )
+    worker_client: str = field(
+        default_factory=lambda: os.environ.get("SAAS_SESSION_WORKER_CLIENT", "")
+    )
+    worker_secret: str = field(
+        default_factory=lambda: os.environ.get("SAAS_SESSION_WORKER_SECRET", ""), repr=False
+    )
+
+    def __post_init__(self) -> None:
         url = urlparse(self.issuer)
         local = self.allow_insecure_local and url.hostname in {"localhost", "127.0.0.1", "keycloak"}
         if not url.netloc or url.query or url.fragment or url.username:
@@ -32,7 +43,7 @@ class Settings:
             Fernet(self.task_key.encode())
 
     @classmethod
-    def from_env(cls):
+    def from_env(cls) -> Self:
         return cls(
             database_url=os.environ["SAAS_DATABASE_URL"],
             issuer=os.environ["SAAS_OIDC_ISSUER"].rstrip("/"),

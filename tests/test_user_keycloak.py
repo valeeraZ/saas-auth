@@ -19,7 +19,6 @@ from cryptography.fernet import Fernet
 from fastapi.testclient import TestClient
 
 from saas_auth.api import create_app
-from saas_auth.private_tasks import deliver_once
 
 pytestmark = pytest.mark.keycloak
 CALLBACK = "http://127.0.0.1:58999/callback"
@@ -164,6 +163,7 @@ def oidc(env):
     settings = replace(
         env.settings,
         issuer=issuer,
+        worker_client="saas-session-worker",
         user_clients=("saas-portal",),
         introspection_client="saas-auth",
         introspection_secret=os.environ["SAAS_INTROSPECTION_SECRET"],
@@ -175,8 +175,8 @@ def oidc(env):
     flow.http.close()
 
 
-def test_code_pkce_exchange_and_durable_upstream_logout(env, oidc, monkeypatch):
-    flow, client, settings = oidc
+def test_code_pkce_exchange_and_synchronous_upstream_logout(env, oidc):
+    flow, client, _ = oidc
     tokens = flow.tokens(flow.login("local-user", os.environ["SAAS_LOCAL_USER_PASSWORD"]))
     exchanged = flow.http.post(
         flow.issuer + "/protocol/openid-connect/token",
@@ -227,11 +227,11 @@ def test_code_pkce_exchange_and_durable_upstream_logout(env, oidc, monkeypatch):
     assert client.get(path, headers=headers).json()["allowed"] is True
     assert client.delete("/v1/sessions/current", headers=headers).status_code == 204
     assert client.get("/v1/me", headers=headers).status_code == 401
-    monkeypatch.setenv("SAAS_SESSION_WORKER_CLIENT", "saas-session-worker")
-    assert deliver_once(env.pool, settings)
     with env.pool.connection() as conn:
         task = conn.execute("SELECT completed_at FROM session_tasks").fetchone()
-        assert task["completed_at"] is not None, "Upstream session revocation worker failed"
+        assert task["completed_at"] is not None, (
+            "Upstream revocation was not acknowledged before logout returned"
+        )
     refreshed = flow.http.post(
         flow.issuer + "/protocol/openid-connect/token",
         data={

@@ -23,9 +23,14 @@ jobs:
           python-version: "3.11"
       - run: python -m pip install uv==0.11.7
       - run: uv sync --frozen
+      - uses: azure/setup-helm@v4.3.1
+        with:
+          version: v3.16.2
+      - run: uv run mypy
       - run: uv run ruff check src tests scripts/prepare_local.py scripts/realm_users.py scripts/local_tls.py
       - run: uv run python scripts/validate_contracts.py
       - run: uv run pytest -q -m 'not keycloak'
+      - run: SAAS_DATABASE_URL="$SAAS_TEST_DATABASE_URL" uv run alembic check
       - name: Start disposable Keycloak
         run: |
           uv run python scripts/prepare_local.py
@@ -57,7 +62,7 @@ jobs:
           uv venv /tmp/installed-auth
           uv pip install --python /tmp/installed-auth/bin/python dist/*.whl
           cd /tmp
-          /tmp/installed-auth/bin/python -c 'from importlib.resources import files; from saas_auth.api import create_app; assert {p.name for p in files("saas_auth").joinpath("migrations").iterdir()} == {"001_foundation.sql", "002_users_and_invitations.sql", "003_user_app_platform.sql", "004_app_access_requests.sql"}'
+          /tmp/installed-auth/bin/python -c 'from pathlib import Path; from saas_auth.api import create_app; from saas_auth.db.migrations import migration_config; from alembic.script import ScriptDirectory; assert ScriptDirectory.from_config(migration_config()).get_heads() == ["004_app_access_requests"]; assert Path(ScriptDirectory.from_config(migration_config()).dir, "script.py.mako").is_file()'
       - run: docker build -t saas-auth:ci .
       - name: Verify Compose startup and migration readiness
         run: |

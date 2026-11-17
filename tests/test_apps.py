@@ -1,9 +1,8 @@
+from dataclasses import replace
 from uuid import uuid4
 
 import psycopg
 import pytest
-
-from saas_auth.db import migrate
 
 
 def mapped(env, headers):
@@ -90,10 +89,16 @@ def test_user_status_identity_mapping_and_live_introspection(env, headers):
     assert env.client.get("/v1/me", headers=headers).status_code == 403
 
 
-def test_logout_idempotent_and_fail_closed(env, headers):
+def test_logout_idempotent_and_fail_closed(env, headers, monkeypatch):
+    delivered = []
+    monkeypatch.setattr(
+        "saas_auth.worker.revocation.revoke_upstream",
+        lambda settings, data: delivered.append(data.sid),
+    )
     mapped(env, headers)
     assert env.client.delete("/v1/sessions/current", headers=headers).status_code == 204
     assert env.client.delete("/v1/sessions/current", headers=headers).status_code == 204
+    assert delivered == ["human-session"]
     assert env.client.get("/v1/me", headers=headers).status_code == 401
     with env.pool.connection() as conn:
         assert conn.execute("SELECT count(*) AS n FROM session_tasks").fetchone()["n"] == 1
@@ -106,7 +111,6 @@ def test_removed_tenant_routes(env, headers, path):
 
 
 def test_migration_archives_without_globalizing_grants(database_url):
-    migrate(database_url)
     with psycopg.connect(database_url) as conn:
         assert conn.execute("SELECT to_regclass('public.tenants')").fetchone()[0] is None
         assert (
@@ -148,24 +152,34 @@ def test_operator_key_and_actor_are_required(env, headers, operator_headers):
 
 
 def test_durable_session_delivery_retry_and_lease_ownership(env, headers, monkeypatch):
-    from saas_auth import private_tasks
+    from saas_auth.worker import revocation as private_tasks
 
+    def unavailable(settings, data):
+        raise OSError("unavailable")
+
+    monkeypatch.setattr(private_tasks, "revoke_upstream", unavailable)
     mapped(env, headers)
-    assert env.client.delete("/v1/sessions/current", headers=headers).status_code == 204
-    task = private_tasks.claim(env.pool)
-    assert task and task["attempts"] == 1
-    assert private_tasks.claim(env.pool) is None
-    forged = task | {"lease_id": uuid4()}
-    assert not private_tasks.finish(env.pool, forged, True)
-    assert private_tasks.finish(env.pool, task, False)
+    response = env.client.delete("/v1/sessions/current", headers=headers)
+    assert response.status_code == 202 and response.json() == {"upstreamRevocation": "pending"}
+    assert env.client.get("/v1/me", headers=headers).status_code == 401
+    assert env.client.delete("/v1/sessions/current", headers=headers).status_code == 202
+    with env.pool.connection() as conn:
+        conn.execute("UPDATE session_tasks SET available_at=now()-interval '1 second'")
+    task = private_tasks.claim(env.database)
+    assert task and task.attempts == 2
+    assert private_tasks.claim(env.database) is None
+    forged = replace(task, lease_id=uuid4())
+    assert not private_tasks.finish(env.database, forged, True)
+    assert private_tasks.finish(env.database, task, False)
     with env.pool.connection() as conn:
         conn.execute("UPDATE session_tasks SET available_at=now()-interval '1 second'")
     delivered = []
     monkeypatch.setattr(
-        private_tasks, "revoke_upstream", lambda settings, data: delivered.append(data["sid"])
+        private_tasks, "revoke_upstream", lambda settings, data: delivered.append(data.sid)
     )
-    assert private_tasks.deliver_once(env.pool, env.settings)
+    assert private_tasks.deliver_once(env.database, env.settings)
     assert delivered == ["human-session"]
+    assert env.client.delete("/v1/sessions/current", headers=headers).status_code == 204
     with env.pool.connection() as conn:
         task = conn.execute("SELECT * FROM session_tasks").fetchone()
         assert task["completed_at"] and task["ciphertext"] is None

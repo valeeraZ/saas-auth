@@ -3,6 +3,7 @@ from dataclasses import dataclass
 import jwt
 from jwt.exceptions import PyJWKClientConnectionError
 
+from saas_auth.config import Settings
 from saas_auth.errors import ApiError, unavailable
 
 
@@ -20,7 +21,7 @@ class Identity:
 
 
 class TokenVerifier:
-    def __init__(self, settings):
+    def __init__(self, settings: Settings) -> None:
         self.settings = settings
         self.jwks = jwt.PyJWKClient(
             settings.issuer + "/protocol/openid-connect/certs",
@@ -29,7 +30,7 @@ class TokenVerifier:
             lifespan=60,
         )
 
-    def verify(self, authorization: str | None, *, check_session=True) -> Identity:
+    def verify(self, authorization: str | None, *, check_session: bool = True) -> Identity:
         if (
             not authorization
             or not authorization.startswith("Bearer ")
@@ -72,7 +73,7 @@ class TokenVerifier:
                 ):
                     raise jwt.InvalidTokenError()
                 if check_session:
-                    from saas_auth.provider import introspect
+                    from saas_auth.identity.provider import introspect
 
                     introspect(self.settings, token, claims["sub"], claims["sid"])
             return Identity(

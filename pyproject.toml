@@ -6,14 +6,25 @@ requires-python = ">=3.11"
 dependencies = [
   "fastapi>=0.115,<1",
   "uvicorn>=0.34,<1",
-  "psycopg[binary,pool]>=3.2,<4",
+  "psycopg[binary]>=3.2,<4",
   "PyJWT[crypto]>=2.10.1,<3",
   "httpx>=0.28,<1",
   "email-validator>=2.2,<3",
+  "sqlalchemy>=2.0.22,<2.1",
+  "alembic>=1.16,<2",
 ]
 
 [dependency-groups]
-dev = ["pytest>=8,<10", "ruff>=0.11,<1", "openapi-spec-validator==0.7.2", "jsonschema==4.23.0", "aiosmtpd>=1.4,<2"]
+dev = [
+    "pytest>=8,<10",
+    "psycopg-pool>=3.2,<4",
+    "ruff>=0.11,<1",
+    "openapi-spec-validator==0.7.2",
+    "jsonschema==4.23.0",
+    "aiosmtpd>=1.4,<2",
+    "mypy>=2.4,<3",
+    "pyyaml>=6,<7",
+]
 
 [build-system]
 requires = ["hatchling"]
@@ -35,3 +46,8 @@ line-length = 100
 
 [tool.ruff.lint]
 select = ["E4", "E7", "E9", "F", "I"]
+
+[tool.mypy]
+files = ["src/saas_auth"]
+python_version = "3.11"
+disallow_untyped_defs = true

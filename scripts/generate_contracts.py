@@ -13,16 +13,4 @@ settings = Settings(
     "unused-contract-secret-at-least-32",
 )
 spec = create_app(settings).openapi()
-spec["components"]["securitySchemes"]["operatorKey"] = {
-    "type": "apiKey",
-    "in": "header",
-    "name": "X-Auth-Operator-Key",
-}
-for path, methods in spec["paths"].items():
-    for operation in methods.values():
-        if path.startswith("/v1/operator/"):
-            operation["security"] = [{"operatorKey": []}]
-            operation["description"] = (
-                "Private operator boundary. Requires a server-held key and trusted X-Auth-Operator-Actor audit label. Human access tokens do not grant operator capability."
-            )
 (root / "contracts/openapi.json").write_text(json.dumps(spec, indent=2) + "\n")

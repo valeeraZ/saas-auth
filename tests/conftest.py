@@ -10,14 +10,17 @@ from uuid import uuid4
 import jwt
 import psycopg
 import pytest
+from alembic import command
 from cryptography.fernet import Fernet
 from cryptography.hazmat.primitives.asymmetric import rsa
 from fastapi.testclient import TestClient
 from psycopg.conninfo import conninfo_to_dict
+from psycopg.rows import dict_row
+from psycopg_pool import ConnectionPool
 
 from saas_auth.api import create_app
 from saas_auth.config import Settings
-from saas_auth.db import make_pool, migrate
+from saas_auth.db.migrations import migration_config
 
 
 @pytest.fixture(scope="session")
@@ -78,7 +81,9 @@ def database_url():
         pytest.fail("Set SAAS_TEST_DATABASE_URL to an isolated PostgreSQL database ending in _test")
     if not conninfo_to_dict(url).get("dbname", "").endswith("_test"):
         pytest.fail("Refusing to reset a database whose name does not end in _test")
-    migrate(url)
+    config = migration_config()
+    config.attributes["database_url"] = url
+    command.upgrade(config, "head")
     return url
 
 
@@ -88,7 +93,7 @@ def env(database_url, signing, monkeypatch):
         conn.execute(
             "TRUNCATE app_role_sets,users,service_principals,app_operations,platform_audit,session_tasks CASCADE"
         )
-    pool = make_pool(database_url)
+    pool = ConnectionPool(database_url, open=False, kwargs={"row_factory": dict_row})
     pool.open(wait=True)
     settings = Settings(
         database_url,
@@ -98,6 +103,7 @@ def env(database_url, signing, monkeypatch):
         user_clients=("saas-portal",),
         introspection_client="saas-auth",
         introspection_secret="test-only",
+        operator_key="operator-key-32-characters-test-only",
         task_key=Fernet.generate_key().decode(),
     )
     app = create_app(settings)
@@ -123,7 +129,6 @@ def env(database_url, signing, monkeypatch):
             claims, signing.key, algorithm="RS256", headers={"kid": "integration-key"}
         )
 
-    monkeypatch.setenv("SAAS_APP_OPERATOR_KEY", "operator-key-32-characters-test-only")
     signing.state["unavailable"] = False
     signing.state["inactive"].clear()
     app_id = uuid4()
@@ -135,6 +140,7 @@ def env(database_url, signing, monkeypatch):
     with TestClient(app) as client:
         yield SimpleNamespace(
             pool=pool,
+            database=app.state.database,
             settings=settings,
             app=app,
             client=client,
