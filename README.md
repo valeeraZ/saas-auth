@@ -227,11 +227,14 @@ Real Keycloak tests also use a separate HTTPS realm, a local certificate, an SMT
 
 ### Kubernetes
 
-The separate management console repository, `saas-admin`, contains `deploy/scripts/prepare.py`, which prepares shared Secrets and generates `auth-values.json`. Set the API and worker to the same immutable Auth image digest. Install Auth first, then the Admin/Portal platform release in the same namespace. Existing installations where the platform release owns Auth resources require a Helm ownership migration before switching releases.
+For a new deployment, use `deploy/scripts/prepare.py` in the `saas-admin` repository to prepare the shared Secrets. The `saas-auth` and `saas-worker` Secrets supply the OIDC settings. If your existing deployment supplies those settings through Helm values, continue passing that values file. Set the API and worker to the same immutable Auth image digest. Install Auth before the Admin/Portal platform release in the same namespace. Existing installations where the platform release owns Auth resources require a Helm ownership migration before switching releases.
 
 ```sh
+AUTH_IMAGE='REGISTRY/saas-auth@sha256:IMAGE_DIGEST'
 helm upgrade --install saas-auth deploy/charts/saas-auth \
-  --namespace saas-stage -f /secure/path/auth-values.json \
+  --namespace saas-stage \
+  --set-string "workloads.auth.image=$AUTH_IMAGE" \
+  --set-string "workloads.worker.image=$AUTH_IMAGE" \
   --atomic --wait --timeout 10m
 helm test saas-auth --namespace saas-stage --logs
 ```

@@ -227,11 +227,14 @@ uv run pytest -q -m 'not keycloak'
 
 ### Kubernetes
 
-先通过管理控制台的独立仓库 `saas-admin` 中的 `deploy/scripts/prepare.py` 准备共享 Secret 与 `auth-values.json`。API 和 Worker 使用同一不可变镜像摘要。在同一命名空间先安装 Auth，再安装 Admin/Portal 平台 release。已有平台 release 管理 Auth 资源时，切换前需要迁移 Helm 资源所有权。
+新部署使用 `saas-admin` 仓库的 `deploy/scripts/prepare.py` 准备共享 Secret。`saas-auth` 和 `saas-worker` Secret 提供 OIDC 配置。如果现有部署通过 Helm values 提供这些配置，请继续传入原 values 文件。API 和 Worker 使用同一不可变镜像摘要。在同一命名空间先安装 Auth，再安装 Admin/Portal 平台 release。已有平台 release 管理 Auth 资源时，切换前需要迁移 Helm 资源所有权。
 
 ```sh
+AUTH_IMAGE='REGISTRY/saas-auth@sha256:IMAGE_DIGEST'
 helm upgrade --install saas-auth deploy/charts/saas-auth \
-  --namespace saas-stage -f /secure/path/auth-values.json \
+  --namespace saas-stage \
+  --set-string "workloads.auth.image=$AUTH_IMAGE" \
+  --set-string "workloads.worker.image=$AUTH_IMAGE" \
   --atomic --wait --timeout 10m
 helm test saas-auth --namespace saas-stage --logs
 ```
