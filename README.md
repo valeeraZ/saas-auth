@@ -17,7 +17,7 @@ Consider a monthly reporting app. An operator publishes it through **Admin**, th
 
 ![Auth runs the API, revocation worker and migration job. Keycloak and PostgreSQL are required services.](docs/diagrams/architecture-en.svg)
 
-- **Keycloak authenticates the employee.** It handles registration, passwords, email verification, recovery and OpenID Connect (OIDC) sign-in. Auth checks the token signature against the issuer’s public keys and uses token introspection to verify the upstream session.
+- **Keycloak authenticates the employee.** It handles registration, passwords, recovery and OpenID Connect (OIDC) sign-in. New users can sign in immediately after registration. Auth reports their email as unverified until Keycloak verifies it. Password recovery still uses email. Auth checks the token signature against the issuer’s public keys and uses token introspection to verify the upstream session.
 - **Auth decides app access.** It maps an external identity to a stable platform user ID using the pair `(issuer, subject)`. It owns local sessions, app role definitions, direct grants, access requests and audit records. Each grant applies to one user and one app. The current model has no tenants or memberships.
 - **Admin manages the app lifecycle.** It owns app registration, deployments and publication. Publication makes an app eligible for discovery. Its authenticated console server calls Auth when an operator grants access or reviews a request.
 - **Portal enforces access at the entry point.** It manages the browser session and checks app permission when proxying protected requests. Each business app owns its data and interprets its roles, including which records a user can read, share or edit.

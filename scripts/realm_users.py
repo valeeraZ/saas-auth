@@ -73,7 +73,7 @@ def add_users(realm):
     )
     realm.update(
         registrationAllowed=True,
-        verifyEmail=True,
+        verifyEmail=False,
         resetPasswordAllowed=True,
         ssoSessionIdleTimeout=1800,
         ssoSessionMaxLifespan=28800,

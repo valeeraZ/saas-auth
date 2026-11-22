@@ -271,7 +271,7 @@ def email_link(messages, index):
     return next(u for u in urls if "/login-actions/action-token" in u)
 
 
-def test_open_registration_email_verification_and_password_reset(oidc, smtp_capture):
+def test_registration_without_verification_and_password_reset(oidc, smtp_capture):
     flow, client, _ = oidc
     username = "registered-" + uuid4().hex[:12]
     password = secrets.token_urlsafe(32)
@@ -289,50 +289,18 @@ def test_open_registration_email_verification_and_password_reset(oidc, smtp_capt
             "password-confirm": password,
         },
     )
-    assert result.status_code == 200, "Expected email verification step"
-    verification = flow.follow(flow.http.get(email_link(smtp_capture, 0)))
-    assert username + "@example.com" in str(smtp_capture[0]["To"])
-    if verification.status_code == 200:
-        confirm = next(
-            (
-                link
-                for link in Page(verification.text).links
-                if "/login-actions/action-token" in link
-            ),
-            None,
-        )
-        if confirm:
-            verification = flow.follow(flow.http.get(urljoin(str(verification.url), confirm)))
-    # The imported realm's email-first registration sets the password only
-    # after verifying the email. Posting it on the initial form is insufficient.
-    if verification.status_code == 200 and "password-new" in Page(verification.text).input_names:
-        verification = flow.submit(
-            verification, {"password-new": password, "password-confirm": password}
-        )
-    if verification.status_code == 200 and "firstName" in Page(verification.text).input_names:
-        verification = flow.submit(
-            verification,
-            {
-                "username": username,
-                "email": username + "@example.com",
-                "firstName": "Test",
-                "lastName": "User",
-            },
-        )
-    tokens = (
-        flow.tokens(verification)
-        if verification.status_code in {302, 303}
-        else flow.tokens(flow.login(username + "@example.com", password))
-    )
+    tokens = flow.tokens(result)
     response = client.get("/v1/me", headers={"Authorization": "Bearer " + tokens["access_token"]})
     assert response.status_code == 200
-    assert response.json()["user"]["emailVerified"] is True
+    assert response.json()["user"]["email"] == username + "@example.com"
+    assert response.json()["user"]["emailVerified"] is False
+    assert not smtp_capture, "Registration must complete without sending email"
     page = flow.start()
     reset = next(link for link in Page(page.text).links if "/reset-credentials" in link)
     flow.submit(
         flow.http.get(urljoin(str(page.url), reset)), {"username": username + "@example.com"}
     )
-    reset_page = flow.follow(flow.http.get(email_link(smtp_capture, 1)))
+    reset_page = flow.follow(flow.http.get(email_link(smtp_capture, 0)))
     replacement = secrets.token_urlsafe(32)
     changed = flow.submit(
         reset_page, {"password-new": replacement, "password-confirm": replacement}
