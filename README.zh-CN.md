@@ -55,6 +55,12 @@ curl --fail "$AUTH/v1/operator/users" \
 
 查看启动问题用 `docker compose ps -a` 和 `docker compose logs migrate auth keycloak worker`。日常停止用 `docker compose down`，保留 Auth 数据卷。Compose 的 Keycloak 使用临时开发存储，这套凭据和 HTTP 配置仅供本地使用。
 
+### 本地 Keycloak 管理员
+
+Keycloak 数据库为空时，Compose 首次启动会在 `master` realm 创建临时管理员。初始用户名为 `local-admin`，密码为 `local-keycloak-admin`。打开[本地 Keycloak 管理控制台](http://127.0.0.1:58080/admin/)，登录后切换到 `saas-local`。这组公开凭据仅供本地开发。
+
+全新安装本地 Kubernetes 时，可在 `saas-admin` 仓库的 `saas-infrastructure` Helm release 中传入 `--set keycloak.localBootstrapAdmin.enabled=true`，启用同一账号。已有 Keycloak 数据库需要使用服务端的离线 `bootstrap-admin` 恢复命令。
+
 ## 接入一个应用
 
 假设要接入一个报表应用。先在 Admin 注册应用并取得它的 UUID。操作员随后在 Auth 为同一 UUID 定义该应用认可的角色，例如 `reader`。平台没有预设应用角色，角色的业务含义由报表应用解释。

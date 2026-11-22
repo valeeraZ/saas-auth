@@ -55,6 +55,12 @@ curl --fail "$AUTH/v1/operator/users" \
 
 For startup failures, inspect `docker compose ps -a` and `docker compose logs migrate auth keycloak worker`. Stop the stack with `docker compose down` to keep the Auth database volume. The Compose Keycloak uses temporary development storage. Its credentials and HTTP settings are for local use.
 
+### Local Keycloak administrator
+
+On the first start with an empty Keycloak database, Compose creates a temporary administrator in the `master` realm. The initial username is `local-admin` and the password is `local-keycloak-admin`. Open the [local Keycloak Admin Console](http://127.0.0.1:58080/admin/) and select `saas-local` after signing in. These published credentials are for local development only.
+
+For a fresh local Kubernetes installation, pass `--set keycloak.localBootstrapAdmin.enabled=true` to the `saas-infrastructure` Helm release in the `saas-admin` repository to use the same account. An existing Keycloak database requires the server’s offline `bootstrap-admin` recovery command.
+
 ## Connect an app
 
 Register the reporting app in the management console and note its UUID. An operator defines roles for that UUID in Auth. For example, the app might recognize a `reader` role. Each app defines its own role keys and their business meaning.
